@@ -134,6 +134,8 @@ local function Pad(inst, top, bottom, left, right)
 	}, inst)
 end
 
+local unpack = table.unpack or unpack
+
 local function Round(value, step)
 	if step <= 0 then return value end
 	return math.floor(value / step + 0.5) * step
@@ -2383,6 +2385,232 @@ function library:Unload()
 		local env = getgenv()
 		if env.VantixElixer == library then env.VantixElixer = nil end
 	end
+end
+
+-- // Portability helpers
+
+-- Executors that ship no Drawing library get an instance based stand in with the
+-- same property names, so ESP and FOV code keeps working untouched.
+local function createDrawingShim()
+	local gui = New("ScreenGui", {
+		Name = "elixer_drawing",
+		DisplayOrder = 999,
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Global,
+		Parent = host,
+	})
+
+	local function newDrawingObject(kind)
+		local data = {
+			Visible = false,
+			Transparency = 1,
+			Color = Color3.new(1, 1, 1),
+			Thickness = 1,
+			Filled = false,
+			Position = Vector2.new(0, 0),
+			Size = 0,
+			From = Vector2.new(0, 0),
+			To = Vector2.new(0, 0),
+			Radius = 0,
+			Text = "",
+			Center = false,
+			Outline = false,
+			NumSides = 32,
+		}
+
+		local inst, stroke
+		if kind == "Square" then
+			inst = New("Frame", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1,
+				BorderSizePixel = 0, Visible = false, Parent = gui })
+			stroke = Stroke(inst, Color3.new(1, 1, 1), 1, 1)
+		elseif kind == "Line" then
+			inst = New("Frame", { BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0,
+				AnchorPoint = Vector2.new(0, 0.5), Visible = false, Parent = gui })
+		elseif kind == "Text" then
+			inst = New("TextLabel", { BackgroundTransparency = 1, BorderSizePixel = 0, Font = FONT,
+				Text = "", TextColor3 = Color3.new(1, 1, 1), TextSize = 14,
+				AutomaticSize = Enum.AutomaticSize.XY, Visible = false, Parent = gui })
+		elseif kind == "Circle" then
+			inst = New("Frame", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1,
+				BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, Parent = gui })
+			Corner(inst, 0)
+			inst:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0.5, 0)
+			stroke = Stroke(inst, Color3.new(1, 1, 1), 1, 1)
+		else
+			inst = New("Frame", { BackgroundTransparency = 1, BorderSizePixel = 0, Visible = false, Parent = gui })
+		end
+
+		local function render()
+			if kind == "Square" then
+				local size = data.Size
+				local width, height = 0, 0
+				if typeof(size) == "Vector2" or (type(size) == "table" and size.X and size.Y) then
+					width, height = size.X, size.Y
+				else
+					local number = tonumber(size) or 0
+					width, height = number, number
+				end
+				inst.Position = UDim2.fromOffset(data.Position.X, data.Position.Y)
+				inst.Size = UDim2.fromOffset(width, height)
+				inst.Visible = data.Visible
+				inst.BackgroundColor3 = data.Color
+				if data.Filled then
+					inst.BackgroundTransparency = 1 - data.Transparency
+					stroke.Transparency = 1
+				else
+					inst.BackgroundTransparency = 1
+					stroke.Color = data.Color
+					stroke.Thickness = math.max(1, data.Thickness)
+					stroke.Transparency = data.Transparency
+				end
+			elseif kind == "Line" then
+				local delta = data.To - data.From
+				local length = math.max(1, delta.Magnitude)
+				inst.Position = UDim2.fromOffset(data.From.X, data.From.Y)
+				inst.Size = UDim2.fromOffset(length, math.max(1, data.Thickness))
+				inst.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+				inst.BackgroundColor3 = data.Color
+				inst.BackgroundTransparency = 1 - data.Transparency
+				inst.Visible = data.Visible
+			elseif kind == "Text" then
+				inst.Position = UDim2.fromOffset(data.Position.X, data.Position.Y)
+				inst.Text = tostring(data.Text or "")
+				inst.TextSize = data.Size or 14
+				inst.TextColor3 = data.Color
+				inst.TextTransparency = 1 - data.Transparency
+				inst.TextStrokeTransparency = data.Outline and math.clamp(1 - data.Transparency + 0.35, 0, 1) or 1
+				inst.AnchorPoint = data.Center and Vector2.new(0.5, 0.5) or Vector2.new(0, 0)
+				inst.TextXAlignment = data.Center and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left
+				inst.Visible = data.Visible
+			elseif kind == "Circle" then
+				local radius = math.max(1, data.Radius)
+				inst.Position = UDim2.fromOffset(data.Position.X, data.Position.Y)
+				inst.Size = UDim2.fromOffset(radius * 2, radius * 2)
+				inst.Visible = data.Visible
+				inst.BackgroundColor3 = data.Color
+				if data.Filled then
+					inst.BackgroundTransparency = 1 - data.Transparency
+					stroke.Transparency = 1
+				else
+					inst.BackgroundTransparency = 1
+					stroke.Color = data.Color
+					stroke.Thickness = math.max(1, data.Thickness)
+					stroke.Transparency = data.Transparency
+				end
+			end
+		end
+
+		local api = { __kind = kind, __inst = inst }
+		function api:Remove()
+			if inst then inst:Destroy() end
+		end
+		api.Destroy = api.Remove
+		return setmetatable(api, {
+			__index = function(_, key) return data[key] end,
+			__newindex = function(_, key, value)
+				data[key] = value
+				render()
+			end,
+		})
+	end
+
+	local shim = {}
+	shim.IsShim = true
+	shim.new = newDrawingObject
+	shim.clear = function()
+		for _, child in ipairs(gui:GetChildren()) do child:Destroy() end
+	end
+	return shim
+end
+
+function library:GetDrawing(forceShim)
+	if library._drawing and not forceShim then return library._drawing end
+	if not forceShim and typeof(Drawing) == "table" and typeof(Drawing.new) == "function" then
+		local works = pcall(function()
+			local probe = Drawing.new("Square")
+			if probe then probe.Visible = false end
+			if probe and probe.Remove then probe:Remove() end
+		end)
+		if works then
+			library._drawing = Drawing
+			library.drawingIsShim = false
+			return Drawing
+		end
+	end
+	library._drawing = createDrawingShim()
+	library.drawingIsShim = true
+	return library._drawing
+end
+
+local function virtualInput()
+	local ok, service = pcall(function() return game:GetService("VirtualInputManager") end)
+	if ok and service then return service end
+	return nil
+end
+
+local function callFirst(fn, signatures)
+	for _, signature in ipairs(signatures) do
+		if pcall(fn, unpack(signature)) then return true end
+	end
+	return false
+end
+
+-- Relative mouse move: mousemoverel first, then the VirtualInputManager fallback
+-- for executors that dropped the legacy mouse functions.
+function library:MoveMouseRelative(deltaX, deltaY)
+	if typeof(mousemoverel) == "function" then
+		if pcall(mousemoverel, deltaX, deltaY) then return true end
+	end
+	if typeof(mouse_move_rel) == "function" then
+		if pcall(mouse_move_rel, deltaX, deltaY) then return true end
+	end
+	local vim = virtualInput()
+	if not vim then return false end
+	local ok, position = pcall(function()
+		return game:GetService("UserInputService"):GetMouseLocation()
+	end)
+	if not ok or not position then return false end
+	local target = Vector3.new(position.X + deltaX, position.Y + deltaY, 0)
+	return callFirst(vim.SendMouseMoveEvent, {
+		{ vim, target },
+		{ vim, target, false, game },
+		{ vim, position.X + deltaX, position.Y + deltaY },
+	})
+end
+
+function library:Mouse1Down()
+	if typeof(mouse1press) == "function" then
+		if pcall(mouse1press) then return true end
+	end
+	local vim = virtualInput()
+	if not vim then return false end
+	local ok, position = pcall(function()
+		return game:GetService("UserInputService"):GetMouseLocation()
+	end)
+	if not ok or not position then return false end
+	return callFirst(vim.SendMouseButtonEvent, {
+		{ vim, position.X, position.Y, 0, true, game, 1 },
+		{ vim, position.X, position.Y, 0, true, game },
+		{ vim, position.X, position.Y, 0, true, true },
+	})
+end
+
+function library:Mouse1Up()
+	if typeof(mouse1release) == "function" then
+		if pcall(mouse1release) then return true end
+	end
+	local vim = virtualInput()
+	if not vim then return false end
+	local ok, position = pcall(function()
+		return game:GetService("UserInputService"):GetMouseLocation()
+	end)
+	if not ok or not position then return false end
+	return callFirst(vim.SendMouseButtonEvent, {
+		{ vim, position.X, position.Y, 0, false, game, 1 },
+		{ vim, position.X, position.Y, 0, false, game },
+		{ vim, position.X, position.Y, 0, false, true },
+	})
 end
 
 function library.NewWindow(self, windowInfo)
