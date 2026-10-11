@@ -1397,6 +1397,26 @@ function VantixUI:CreateWindow(config)
 		DisplayOrder=999,
 	}, guiParent)
 
+	local liveConns = {}
+	local function bind(signal, fn)
+		local c = signal:Connect(fn)
+		table.insert(liveConns, c)
+		return c
+	end
+
+	-- runs on every way the gui can die (X button, :Destroy, re-execute, executor cleanup),
+	-- so features and hotkeys of a dead window never keep running
+	local tornDown = false
+	local function teardown()
+		if tornDown then return end
+		tornDown = true
+		disableAllToggles()
+		closeVantixPanels()
+		for _, c in ipairs(liveConns) do pcall(function() c:Disconnect() end) end
+		table.clear(liveConns)
+	end
+	sg.Destroying:Connect(teardown)
+
 	
 	local cursorSink = inst("TextButton",{
 		Name="CursorSink", Modal=true, Text="", AutoButtonColor=false,
@@ -1475,13 +1495,13 @@ function VantixUI:CreateWindow(config)
 				gDrag=true; gds=inp.Position; gws=win.Position
 			end
 		end)
-		UIS.InputChanged:Connect(function(inp)
+		bind(UIS.InputChanged, function(inp)
 			if gDrag and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
 				local d=inp.Position-gds
 				win.Position=UDim2.new(gws.X.Scale,gws.X.Offset+d.X,gws.Y.Scale,gws.Y.Offset+d.Y)
 			end
 		end)
-		UIS.InputEnded:Connect(function(inp)
+		bind(UIS.InputEnded, function(inp)
 			if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
 				gDrag=false; tw(grabLine,{BackgroundTransparency=0.62},0.12):Play()
 			end
@@ -1509,7 +1529,7 @@ function VantixUI:CreateWindow(config)
 			end
 		end)
 
-		UIS.InputChanged:Connect(function(inp)
+		bind(UIS.InputChanged, function(inp)
 			if not rDragging then return end
 			if inp.UserInputType == Enum.UserInputType.MouseMovement
 			or inp.UserInputType == Enum.UserInputType.Touch then
@@ -1521,7 +1541,7 @@ function VantixUI:CreateWindow(config)
 			end
 		end)
 
-		UIS.InputEnded:Connect(function(inp)
+		bind(UIS.InputEnded, function(inp)
 			if inp.UserInputType == Enum.UserInputType.MouseButton1
 			or inp.UserInputType == Enum.UserInputType.Touch then
 				rDragging = false
@@ -1662,8 +1682,7 @@ function VantixUI:CreateWindow(config)
 	closeBtn.MouseButton1Click:Connect(function()
 		if win:GetAttribute("Closing") then return end
 		win:SetAttribute("Closing", true)
-		disableAllToggles()
-		closeVantixPanels()
+		teardown()
 
 		local winScale = Instance.new("UIScale")
 		winScale.Scale = 1
@@ -1760,14 +1779,14 @@ function VantixUI:CreateWindow(config)
 				d_dragging=true; ds=inp.Position; ws=minOverlay.Position
 			end
 		end)
-		UIS.InputChanged:Connect(function(inp)
+		bind(UIS.InputChanged, function(inp)
 			if d_dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
 				local d = inp.Position - ds
 				minOverlay.Position = UDim2.new(ws.X.Scale, ws.X.Offset + d.X, ws.Y.Scale, ws.Y.Offset + d.Y)
 				savedMinPos = minOverlay.Position
 			end
 		end)
-		UIS.InputEnded:Connect(function(inp)
+		bind(UIS.InputEnded, function(inp)
 			if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then 
 				d_dragging=false 
 			end
@@ -1864,7 +1883,7 @@ function VantixUI:CreateWindow(config)
 	if getgenv().VantixUIToggleConn then
 		pcall(function() getgenv().VantixUIToggleConn:Disconnect() end)
 	end
-	getgenv().VantixUIToggleConn = UIS.InputBegan:Connect(function(inp)
+	getgenv().VantixUIToggleConn = bind(UIS.InputBegan, function(inp)
 		if toggleKey and inp.KeyCode == toggleKey and not UIS:GetFocusedTextBox() then
 			if minimized then doRestore() else doMinimize() end
 		end
@@ -1878,14 +1897,14 @@ function VantixUI:CreateWindow(config)
 			dragging=true; ds=inp.Position; ws=win.Position
 		end
 	end)
-	UIS.InputChanged:Connect(function(inp)
+	bind(UIS.InputChanged, function(inp)
 		if dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement
 			or inp.UserInputType==Enum.UserInputType.Touch) then
 			local d=inp.Position-ds
 			win.Position=UDim2.new(ws.X.Scale,ws.X.Offset+d.X,ws.Y.Scale,ws.Y.Offset+d.Y)
 		end
 	end)
-	UIS.InputEnded:Connect(function(inp)
+	bind(UIS.InputEnded, function(inp)
 		if inp.UserInputType==Enum.UserInputType.MouseButton1
 		or inp.UserInputType==Enum.UserInputType.Touch then dragging=false end
 	end)
@@ -3013,7 +3032,7 @@ function VantixUI:CreateWindow(config)
 				tw(keyBtn,{BackgroundColor3=K.border},0.1):Play()
 			end)
 
-			UIS.InputBegan:Connect(function(inp, gpe)
+			bind(UIS.InputBegan, function(inp, gpe)
 				if not listening then
 					if currentKey ~= Enum.KeyCode.Unknown and inp.KeyCode == currentKey and not UIS:GetFocusedTextBox() and opts.Callback then
 						if opts.Risky then
@@ -3294,8 +3313,7 @@ function VantixUI:CreateWindow(config)
 	function Window:Destroy()
 		if win:GetAttribute("Closing") then return end
 		win:SetAttribute("Closing", true)
-		disableAllToggles()
-		closeVantixPanels()
+		teardown()
 
 		local winScale = Instance.new("UIScale")
 		winScale.Scale = 1
