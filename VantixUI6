@@ -327,7 +327,7 @@ local function frame(parent, p)
 	if not color and not colorKey and p.trans ~= 1 then
 		colorKey = "surface"
 	end
-	local f = inst("Frame",{
+	local f = inst(p.class or "Frame",{
 		BackgroundColor3       = color or (colorKey and K[colorKey]) or K.surface,
 		BackgroundTransparency = p.trans  or 0,
 		BorderSizePixel        = 0,
@@ -359,7 +359,7 @@ local function lbl(parent, p)
 	local l = inst("TextLabel",{
 		BackgroundTransparency = 1,
 		AutoLocalize           = false,
-		Font                   = p.font   or Enum.Font.GothamMedium,
+		Font                   = p.font   or Enum.Font.BuilderSansMedium,
 		Text                   = p.text   or "",
 		TextColor3             = color or K[colorKey] or K.text,
 		TextSize               = p.size   or 14,
@@ -405,7 +405,7 @@ local function btn(parent, p)
 		BackgroundTransparency = p.trans  or 0,
 		BorderSizePixel        = 0,
 		AutoLocalize           = false,
-		Font                   = p.font   or Enum.Font.GothamMedium,
+		Font                   = p.font   or Enum.Font.BuilderSansMedium,
 		Text                   = p.text   or "",
 		TextColor3             = tc or K[tcKey] or K.text,
 		TextSize               = p.size   or 14,
@@ -631,10 +631,10 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 		local ts = game:GetService("TextService")
 		pcall(function()
 			for _, txt in ipairs(optsText) do
-				local b = ts:GetTextSize(txt, 13, Enum.Font.GothamMedium, Vector2.new(1000, 30))
+				local b = ts:GetTextSize(txt, 13, Enum.Font.BuilderSansMedium, Vector2.new(1000, 30))
 				if b.X + 44 > maxW then maxW = b.X + 44 end
 			end
-			local b2 = ts:GetTextSize(selected, 13, Enum.Font.GothamMedium, Vector2.new(1000, 30))
+			local b2 = ts:GetTextSize(selected, 13, Enum.Font.BuilderSansMedium, Vector2.new(1000, 30))
 			if b2.X + 44 > maxW then maxW = b2.X + 44 end
 		end)
 		return maxW
@@ -647,7 +647,7 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 	})
 
 	local header = btn(wrap,{
-		name="DHead", text=selected, font=Enum.Font.GothamMedium, size=13,
+		name="DHead", text=selected, font=Enum.Font.BuilderSansMedium, size=13,
 		colorKey="bg", tcKey="text",
 		sz=UDim2.new(1,0,0,DROP_H), z=11,
 	})
@@ -663,7 +663,7 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 		})
 	else
 		arrow = lbl(header,{
-			text="v", font=Enum.Font.GothamBold, size=12, colorKey="sub",
+			text="v", font=Enum.Font.BuilderSansBold, size=12, colorKey="sub",
 			sz=UDim2.new(0,20,1,0), pos=UDim2.new(1,-20,0,0), z=12,
 			xa=Enum.TextXAlignment.Center,
 		})
@@ -728,7 +728,7 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 		for i, opt in ipairs(options) do
 			local isSel = (opt == selected)
 			local ob = btn(listFrame,{
-				name="Opt_"..opt, text=opt, font=Enum.Font.GothamMedium, size=13,
+				name="Opt_"..opt, text=opt, font=Enum.Font.BuilderSansMedium, size=13,
 				colorKey="raised", tcKey=isSel and "white" or "sub",
 				sz=UDim2.new(1,0,0,30), z=listZ+1,
 				xa=Enum.TextXAlignment.Left,
@@ -738,7 +738,7 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 			ob.LayoutOrder = i
 
 			local check = lbl(ob, {
-				name = "Check", text = "✓", font = Enum.Font.GothamBold, size = 12, colorKey = "white",
+				name = "Check", text = "✓", font = Enum.Font.BuilderSansBold, size = 12, colorKey = "white",
 				sz = UDim2.new(0, 20, 1, 0), pos = UDim2.new(1, -24, 0, 0), z = listZ + 2,
 				xa = Enum.TextXAlignment.Right,
 			})
@@ -864,10 +864,10 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 		local ts = game:GetService("TextService")
 		pcall(function()
 			for _, txt in ipairs(optsText) do
-				local b = ts:GetTextSize(txt, 13, Enum.Font.GothamMedium, Vector2.new(1000, 30))
+				local b = ts:GetTextSize(txt, 13, Enum.Font.BuilderSansMedium, Vector2.new(1000, 30))
 				if b.X + 60 > maxW then maxW = b.X + 60 end
 			end
-			local b2 = ts:GetTextSize(getHeaderText(), 13, Enum.Font.GothamMedium, Vector2.new(1000, 30))
+			local b2 = ts:GetTextSize(getHeaderText(), 13, Enum.Font.BuilderSansMedium, Vector2.new(1000, 30))
 			if b2.X + 60 > maxW then maxW = b2.X + 60 end
 		end)
 		return maxW
@@ -880,7 +880,7 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 	})
 
 	local header = btn(wrap,{
-		name="DHead", text=getHeaderText(), font=Enum.Font.GothamMedium, size=13,
+		name="DHead", text=getHeaderText(), font=Enum.Font.BuilderSansMedium, size=13,
 		colorKey="bg", tcKey="text",
 		sz=UDim2.new(1,0,0,DROP_H), z=11,
 	})
@@ -896,7 +896,7 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 		})
 	else
 		arrow = lbl(header,{
-			text="v", font=Enum.Font.GothamBold, size=12, colorKey="sub",
+			text="v", font=Enum.Font.BuilderSansBold, size=12, colorKey="sub",
 			sz=UDim2.new(0,20,1,0), pos=UDim2.new(1,-20,0,0), z=12,
 			xa=Enum.TextXAlignment.Center,
 		})
@@ -961,7 +961,7 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 		for i, opt in ipairs(options) do
 			local isSel = not not selected[opt]
 			local ob = btn(listFrame,{
-				name="Opt_"..opt, text=opt, font=Enum.Font.GothamMedium, size=13,
+				name="Opt_"..opt, text=opt, font=Enum.Font.BuilderSansMedium, size=13,
 				colorKey="raised", tcKey=isSel and "white" or "sub",
 				sz=UDim2.new(1,0,0,30), z=listZ+1,
 				xa=Enum.TextXAlignment.Left,
@@ -971,7 +971,7 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 			ob.LayoutOrder = i
 
 			local check = lbl(ob, {
-				name = "Check", text = "✓", font = Enum.Font.GothamBold, size = 12, colorKey = "white",
+				name = "Check", text = "✓", font = Enum.Font.BuilderSansBold, size = 12, colorKey = "white",
 				sz = UDim2.new(0, 20, 1, 0), pos = UDim2.new(1, -24, 0, 0), z = listZ + 2,
 				xa = Enum.TextXAlignment.Right,
 			})
@@ -1075,7 +1075,7 @@ local function makeTextBox(parent, placeholder, defaultText)
 		BackgroundColor3 = K.bg,
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
-		Font = Enum.Font.GothamMedium,
+		Font = Enum.Font.BuilderSansMedium,
 		Text = defaultText or "",
 		PlaceholderText = placeholder or "Type here...",
 		PlaceholderColor3 = K.muted,
@@ -1568,7 +1568,7 @@ function VantixUI:CreateWindow(config)
 	end, logoGrad)
 
 	local loadSub=lbl(loadLayer,{
-		text=string.upper(TITLE),font=Enum.Font.Gotham,
+		text=string.upper(TITLE),font=Enum.Font.BuilderSans,
 		size=12,colorKey="muted",trans=1,
 		sz=UDim2.new(0,260,0,18),pos=UDim2.new(0.5,0,0.5,36),anchor=Vector2.new(0.5,0),
 		xa=Enum.TextXAlignment.Center,z=32,
@@ -1599,7 +1599,7 @@ function VantixUI:CreateWindow(config)
 	})
 
 	local titleLbl = lbl(titlebar,{
-		text=TITLE, font=Enum.Font.GothamBold, size=16, colorKey="white",
+		text=TITLE, font=Enum.Font.BuilderSansBold, size=16, colorKey="white",
 		sz=UDim2.new(0,200,1,0), pos=UDim2.new(0,16,0,0), z=6,
 	})
 	titleLbl.TextTruncate = Enum.TextTruncate.AtEnd
@@ -1686,7 +1686,7 @@ function VantixUI:CreateWindow(config)
 	local pillTextPad = 14
 	local pillW = 156
 	pcall(function()
-		local w = game:GetService("TextService"):GetTextSize(pillText, 12, Enum.Font.GothamMedium, Vector2.new(1000, 30)).X
+		local w = game:GetService("TextService"):GetTextSize(pillText, 12, Enum.Font.BuilderSansMedium, Vector2.new(1000, 30)).X
 		pillW = math.max(140, w + 41 + pillTextX + pillTextPad)
 	end)
 
@@ -1719,7 +1719,7 @@ function VantixUI:CreateWindow(config)
 		})
 		dragIconProp = "ImageColor3"
 	else
-		dragIcon = lbl(dragArea,{text="+",font=Enum.Font.GothamMedium,size=16,colorKey="sub",sz=UDim2.fromScale(1,1),xa=Enum.TextXAlignment.Center,ya=Enum.TextYAlignment.Center,z=103})
+		dragIcon = lbl(dragArea,{text="+",font=Enum.Font.BuilderSansMedium,size=16,colorKey="sub",sz=UDim2.fromScale(1,1),xa=Enum.TextXAlignment.Center,ya=Enum.TextYAlignment.Center,z=103})
 		dragIconProp = "TextColor3"
 	end
 	dragArea.MouseEnter:Connect(function() tw(dragIcon,{[dragIconProp]=K.white},0.1):Play() end)
@@ -1740,7 +1740,7 @@ function VantixUI:CreateWindow(config)
 	end
 
 	lbl(clickArea, {
-		text=pillText, font=Enum.Font.GothamMedium, size=12, colorKey="white",
+		text=pillText, font=Enum.Font.BuilderSansMedium, size=12, colorKey="white",
 		sz=UDim2.new(1,-(pillTextX + pillTextPad),1,0), pos=UDim2.new(0, pillTextX,0,0), xa=Enum.TextXAlignment.Left, z=103
 	})
 
@@ -1902,7 +1902,7 @@ function VantixUI:CreateWindow(config)
 	body = frame(win,{
 		name="Body", colorKey="bg", trans=1,
 		size=UDim2.new(1,0,1,-38), pos=UDim2.new(0,0,0,38),
-		z=4, clip=true,
+		z=4, clip=true, class="CanvasGroup",
 	})
 	rnd(body, 10)
 	body.Visible=false
@@ -1920,7 +1920,7 @@ function VantixUI:CreateWindow(config)
 		for name, nb in pairs(navBtns) do
 			local active = (name == page)
 			tw(nb.accent,{BackgroundTransparency=active and 0 or 1},0.15):Play()
-			nb.lbl.Font = active and Enum.Font.GothamBold or Enum.Font.GothamMedium
+			nb.lbl.Font = active and Enum.Font.BuilderSansBold or Enum.Font.BuilderSansMedium
 			nb.lbl:SetAttribute("tcKey", active and "white" or "sub")
 			tw(nb.lbl,{TextColor3=active and K.white or K.sub},0.15):Play()
 			if nb.icon then
@@ -1997,7 +1997,7 @@ function VantixUI:CreateWindow(config)
 		local txtX = AVA + 16
 		local nameLbl = lbl(profileSection,{
 			text=player.DisplayName,
-			font=Enum.Font.GothamBold, size=15, colorKey="text",
+			font=Enum.Font.BuilderSansBold, size=15, colorKey="text",
 			sz=UDim2.new(1,-txtX-4,0,18),
 			pos=UDim2.new(0,txtX,0.5,-15), z=7,
 		})
@@ -2005,7 +2005,7 @@ function VantixUI:CreateWindow(config)
 
 		local execLbl = lbl(profileSection,{
 			text="",
-			font=Enum.Font.GothamMedium, size=13, colorKey="muted",
+			font=Enum.Font.BuilderSansMedium, size=13, colorKey="muted",
 			sz=UDim2.new(1,-txtX-4,0,15),
 			pos=UDim2.new(0,txtX,0.5,5), z=7,
 		})
@@ -2093,7 +2093,7 @@ function VantixUI:CreateWindow(config)
 	brd(tooltipBg, "borderHi", 1)
 
 	local tooltipLbl = lbl(tooltipBg, {
-		name="Tooltip", text="", font=Enum.Font.GothamMedium, size=12,
+		name="Tooltip", text="", font=Enum.Font.BuilderSansMedium, size=12,
 		colorKey="text", sz=UDim2.new(1,0,1,0),
 		wrap=false, xa=Enum.TextXAlignment.Left, ya=Enum.TextYAlignment.Center,
 		z=180,
@@ -2150,7 +2150,7 @@ function VantixUI:CreateWindow(config)
 		end
 
 		local tLbl = lbl(tWrap,{
-			text=text, font=Enum.Font.GothamMedium, size=12,
+			text=text, font=Enum.Font.BuilderSansMedium, size=12,
 			color=textColor, colorKey=not textColor and "text" or nil,
 			sz=UDim2.new(0,0,0,0), z=7, xa=Enum.TextXAlignment.Center, ya=Enum.TextYAlignment.Center,
 		})
@@ -2239,14 +2239,14 @@ function VantixUI:CreateWindow(config)
 		end
 
 		lbl(header,{
-			text="Risky Feature", font=Enum.Font.GothamBold, size=16, colorKey="text",
+			text="Risky Feature", font=Enum.Font.BuilderSansBold, size=16, colorKey="text",
 			sz=UDim2.new(1,iconLoaded and -52 or 0,0,20),
 			pos=UDim2.new(0,iconLoaded and 52 or 0,0.5,0), anchor=Vector2.new(0,0.5), z=503,
 		})
 
 		local body = lbl(card,{
 			text=customText or "Features marked in red carry extra risk of detection, instability, or unintended side effects. Make sure you understand what you're enabling before you continue.",
-			font=Enum.Font.Gotham, size=13, colorKey="sub", wrap=true,
+			font=Enum.Font.BuilderSans, size=13, colorKey="sub", wrap=true,
 			sz=UDim2.new(1,0,0,0), pos=UDim2.new(0,0,0,0), z=502, ya=Enum.TextYAlignment.Top,
 		})
 		body.LayoutOrder = 2
@@ -2258,7 +2258,7 @@ function VantixUI:CreateWindow(config)
 		}, card)
 
 		local noBtn = btn(btnRow,{
-			name="No", text="Cancel", font=Enum.Font.GothamMedium, size=13,
+			name="No", text="Cancel", font=Enum.Font.BuilderSansMedium, size=13,
 			colorKey="raised", tcKey="sub",
 			sz=UDim2.new(0.5,-4,1,0), pos=UDim2.new(0,0,0,0), z=503,
 		})
@@ -2267,7 +2267,7 @@ function VantixUI:CreateWindow(config)
 		noBtn.MouseLeave:Connect(function() tw(noBtn,{BackgroundColor3=K.raised},0.1):Play() end)
 
 		local yesBtn = btn(btnRow,{
-			name="Yes", text="I Understand", font=Enum.Font.GothamBold, size=13,
+			name="Yes", text="I Understand", font=Enum.Font.BuilderSansBold, size=13,
 			colorKey="white", tcKey="black",
 			sz=UDim2.new(0.5,-4,1,0), pos=UDim2.new(1,0,0,0), anchor=Vector2.new(1,0), z=503,
 		})
@@ -2365,14 +2365,14 @@ function VantixUI:CreateWindow(config)
 		end
 
 		lbl(header,{
-			text="Beta Feature", font=Enum.Font.GothamBold, size=16, colorKey="text",
+			text="Beta Feature", font=Enum.Font.BuilderSansBold, size=16, colorKey="text",
 			sz=UDim2.new(1,iconLoaded and -52 or 0,0,20),
 			pos=UDim2.new(0,iconLoaded and 52 or 0,0.5,0), anchor=Vector2.new(0,0.5), z=503,
 		})
 
 		local body = lbl(card,{
 			text=customText or "Features marked in yellow are still in testing and may be incomplete, unstable, or change without notice. Use with that in mind.",
-			font=Enum.Font.Gotham, size=13, colorKey="sub", wrap=true,
+			font=Enum.Font.BuilderSans, size=13, colorKey="sub", wrap=true,
 			sz=UDim2.new(1,0,0,0), pos=UDim2.new(0,0,0,0), z=502, ya=Enum.TextYAlignment.Top,
 		})
 		body.LayoutOrder = 2
@@ -2384,7 +2384,7 @@ function VantixUI:CreateWindow(config)
 		}, card)
 
 		local noBtn = btn(btnRow,{
-			name="No", text="Cancel", font=Enum.Font.GothamMedium, size=13,
+			name="No", text="Cancel", font=Enum.Font.BuilderSansMedium, size=13,
 			colorKey="raised", tcKey="sub",
 			sz=UDim2.new(0.5,-4,1,0), pos=UDim2.new(0,0,0,0), z=503,
 		})
@@ -2393,7 +2393,7 @@ function VantixUI:CreateWindow(config)
 		noBtn.MouseLeave:Connect(function() tw(noBtn,{BackgroundColor3=K.raised},0.1):Play() end)
 
 		local yesBtn = btn(btnRow,{
-			name="Yes", text="I Understand", font=Enum.Font.GothamBold, size=13,
+			name="Yes", text="I Understand", font=Enum.Font.BuilderSansBold, size=13,
 			colorKey="white", tcKey="black",
 			sz=UDim2.new(0.5,-4,1,0), pos=UDim2.new(1,0,0,0), anchor=Vector2.new(1,0), z=503,
 		})
@@ -2443,7 +2443,7 @@ function VantixUI:CreateWindow(config)
 
 		local pageHdr = lbl(tabContent,{
 			name="PageHdr", text=tabName,
-			font=Enum.Font.GothamBold, size=MOBILE and 18 or 16, colorKey="white",
+			font=Enum.Font.BuilderSansBold, size=MOBILE and 18 or 16, colorKey="white",
 			sz=UDim2.new(1,-24,0,20), pos=UDim2.new(0,18,0,14), z=6,
 		})
 
@@ -2488,8 +2488,8 @@ function VantixUI:CreateWindow(config)
 			rnd(accent,99)
 
 			local nl=lbl(nb,{
-				text=tabName,font=Enum.Font.GothamMedium,size=SIDE_W < 140 and 12 or 15,colorKey="sub",
-				sz=UDim2.new(1,0,1,0),pos=UDim2.new(0,(iconName and lucide) and (SIDE_W < 140 and 28 or 38) or (SIDE_W < 140 and 8 or 16),0,0),z=7,
+				text=tabName,font=Enum.Font.BuilderSansMedium,size=SIDE_W < 140 and 12 or 15,colorKey="sub",
+				sz=UDim2.new(1,0,1,0),pos=UDim2.new(0,(iconName and lucide) and (SIDE_W < 140 and 32 or 38) or (SIDE_W < 140 and 8 or 16),0,0),z=7,
 			})
 			nl.TextTruncate = Enum.TextTruncate.AtEnd
 
@@ -2497,7 +2497,7 @@ function VantixUI:CreateWindow(config)
 			if iconName and lucide then
 				iconImg = img(nb,{
 					name="Icon", img=getLucide(iconName, 18),
-					colorKey="sub", sz=UDim2.new(0,19,0,19), pos=UDim2.new(0,12,0.5,0), anchor=Vector2.new(0,0.5), z=7,
+					colorKey="sub", sz=UDim2.new(0,SIDE_W < 140 and 16 or 19,0,SIDE_W < 140 and 16 or 19), pos=UDim2.new(0,SIDE_W < 140 and 10 or 12,0.5,0), anchor=Vector2.new(0,0.5), z=7,
 				})
 			end
 
@@ -2582,20 +2582,36 @@ function VantixUI:CreateWindow(config)
 				})
 			end
 
-			lbl(r,{
-				text=title, font=Enum.Font.GothamMedium, size=14,
+			local titleLbl = lbl(r,{
+				name="Title", text=title, font=Enum.Font.BuilderSansMedium, size=14,
 				color=accentColor, colorKey=not accentColor and "text" or nil,
 				sz=UDim2.new(0.6,0,0,20),
 				pos=UDim2.new(0,textOffset,0, subtitle and 8 or 11), z=8,
 			})
+			titleLbl.TextTruncate = Enum.TextTruncate.AtEnd
 			if subtitle then
-				lbl(r,{
-					text=subtitle, font=Enum.Font.Gotham, size=12, colorKey="muted",
+				local subLbl = lbl(r,{
+					name="Sub", text=subtitle, font=Enum.Font.BuilderSans, size=12, colorKey="muted",
 					sz=UDim2.new(0.6,0,0,16), pos=UDim2.new(0,textOffset,0,28), z=8,
 				})
+				subLbl.TextTruncate = Enum.TextTruncate.AtEnd
 			end
 
+			r:SetAttribute("TextX", textOffset)
 			return r
+		end
+
+		local function fitRow(r, ctrl)
+			local textX = r:GetAttribute("TextX") or ROW_PAD
+			local function apply()
+				local w = UDim2.new(1, -(textX + ctrl.Size.X.Offset + ROW_PAD + 10), 0, 0)
+				for _, n in ipairs({"Title", "Sub"}) do
+					local l = r:FindFirstChild(n)
+					if l then l.Size = UDim2.new(w.X.Scale, w.X.Offset, 0, l.Size.Y.Offset) end
+				end
+			end
+			apply()
+			ctrl:GetPropertyChangedSignal("Size"):Connect(apply)
 		end
 
 		local function makeSliderRow(title, iconName, risky, tooltipText, beta)
@@ -2631,10 +2647,10 @@ function VantixUI:CreateWindow(config)
 			end
 
 			lbl(r,{
-				text=title, font=Enum.Font.GothamMedium, size=14,
+				text=title, font=Enum.Font.BuilderSansMedium, size=14,
 				color=accentColor, colorKey=not accentColor and "text" or nil,
-				sz=UDim2.new(1,0,0,20), pos=UDim2.new(0,textOffset,0,10), z=8,
-			})
+				sz=UDim2.new(1,-(textOffset + ROW_PAD + 62),0,20), pos=UDim2.new(0,textOffset,0,10), z=8,
+			}).TextTruncate = Enum.TextTruncate.AtEnd
 
 			return r
 		end
@@ -2649,6 +2665,7 @@ function VantixUI:CreateWindow(config)
 			tog.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
 			tog.frame.AnchorPoint = Vector2.new(1,0.5)
 			tog.frame.ZIndex = 9
+			fitRow(r, tog.frame)
 
 			if opts.Callback then
 				tog.changed:Connect(opts.Callback)
@@ -2681,7 +2698,7 @@ function VantixUI:CreateWindow(config)
 			local initVal = opts.Default or opts.Min or 0
 			local valLbl = lbl(r,{
 				text=tostring(math.round(initVal)),
-				font=Enum.Font.GothamBold, size=13, colorKey="white",
+				font=Enum.Font.BuilderSansBold, size=13, colorKey="white",
 				sz=UDim2.new(0,55,0,20),
 				pos=UDim2.new(1,-ROW_PAD,0,8), anchor=Vector2.new(1,0),
 				xa=Enum.TextXAlignment.Right, z=9,
@@ -2711,15 +2728,16 @@ function VantixUI:CreateWindow(config)
 
 			local btnText = opts.ButtonText or opts.Text or "Execute"
 			local bW = 70
-			pcall(function() bW = math.max(70, game:GetService("TextService"):GetTextSize(btnText, 12, Enum.Font.GothamMedium, Vector2.new(1000, 30)).X + 24) end)
+			pcall(function() bW = math.max(70, game:GetService("TextService"):GetTextSize(btnText, 12, Enum.Font.BuilderSansMedium, Vector2.new(1000, 30)).X + 24) end)
 
 			local ab = btn(r,{
-				text=btnText, font=Enum.Font.GothamMedium, size=12,
+				text=btnText, font=Enum.Font.BuilderSansMedium, size=12,
 				colorKey="bg", tcKey="white",
 				sz=UDim2.new(0,bW,0,28), pos=UDim2.new(1,-ROW_PAD,0.5,0), anchor=Vector2.new(1,0.5), z=9,
 			})
 			rnd(ab,6)
 			brd(ab,"border",1)
+			fitRow(r, ab)
 
 			ab.MouseEnter:Connect(function()
 				ab:SetAttribute("Hovered", true)
@@ -2768,7 +2786,7 @@ function VantixUI:CreateWindow(config)
 			end
 
 			local l = lbl(r,{
-				text=text or "", font=Enum.Font.Gotham, size=13, colorKey="sub",
+				text=text or "", font=Enum.Font.BuilderSans, size=13, colorKey="sub",
 				sz=UDim2.new(1,0,1,0), pos=UDim2.new(0,textOffset,0,0), z=8,
 			})
 
@@ -2800,7 +2818,7 @@ function VantixUI:CreateWindow(config)
 
 			if opts.Title then
 				lbl(wrap,{
-					text=opts.Title, font=Enum.Font.GothamMedium, size=13, colorKey="text",
+					text=opts.Title, font=Enum.Font.BuilderSansMedium, size=13, colorKey="text",
 					sz=UDim2.new(1,0,0,18), pos=UDim2.new(0,0,0,0), z=8,
 				})
 			end
@@ -2870,6 +2888,7 @@ function VantixUI:CreateWindow(config)
 			dd.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
 			dd.frame.AnchorPoint = Vector2.new(1,0.5)
 			dd.frame.ZIndex = 10
+			fitRow(r, dd.frame)
 
 			table.insert(allDropdownClosers, dd.close)
 
@@ -2899,6 +2918,7 @@ function VantixUI:CreateWindow(config)
 			dd.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
 			dd.frame.AnchorPoint = Vector2.new(1,0.5)
 			dd.frame.ZIndex = 10
+			fitRow(r, dd.frame)
 
 			table.insert(allDropdownClosers, dd.close)
 
@@ -2923,6 +2943,7 @@ function VantixUI:CreateWindow(config)
 			tb.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
 			tb.frame.AnchorPoint = Vector2.new(1,0.5)
 			tb.frame.ZIndex = 10
+			fitRow(r, tb.frame)
 
 			if opts.Callback then
 				tb.changed:Connect(opts.Callback)
@@ -2952,6 +2973,7 @@ function VantixUI:CreateWindow(config)
 			cp.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
 			cp.frame.AnchorPoint = Vector2.new(1,0.5)
 			cp.frame.ZIndex = 10
+			fitRow(r, cp.frame)
 
 			table.insert(allDropdownClosers, cp.close)
 
@@ -2974,13 +2996,14 @@ function VantixUI:CreateWindow(config)
 
 			local keyBtn = btn(r,{
 				text = currentKey == Enum.KeyCode.Unknown and "None" or currentKey.Name,
-				font=Enum.Font.GothamMedium, size=13,
+				font=Enum.Font.BuilderSansMedium, size=13,
 				colorKey="bg", tcKey="sub",
 				sz=UDim2.new(0,90,0,28),
 				pos=UDim2.new(1,-ROW_PAD,0.5,0), anchor=Vector2.new(1,0.5), z=10,
 			})
 			rnd(keyBtn,6)
 			brd(keyBtn,"border",1)
+			fitRow(r, keyBtn)
 
 			local listening = false
 			keyBtn.MouseButton1Click:Connect(function()
@@ -3180,7 +3203,7 @@ function VantixUI:CreateWindow(config)
 				BackgroundTransparency = 1,
 				Text           = opts.Title,
 				TextColor3     = K.text,
-				Font           = Enum.Font.GothamBold,
+				Font           = Enum.Font.BuilderSansBold,
 				TextSize       = 13,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
@@ -3195,7 +3218,7 @@ function VantixUI:CreateWindow(config)
 				BackgroundTransparency = 1,
 				Text           = opts.Text,
 				TextColor3     = K.muted,
-				Font           = Enum.Font.GothamMedium,
+				Font           = Enum.Font.BuilderSansMedium,
 				TextSize       = 11,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
@@ -3210,7 +3233,7 @@ function VantixUI:CreateWindow(config)
 				BackgroundTransparency = 1,
 				Text           = hasTitle and opts.Title or opts.Text,
 				TextColor3     = K.text,
-				Font           = Enum.Font.GothamBold,
+				Font           = Enum.Font.BuilderSansBold,
 				TextSize       = 13,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Center,
@@ -3227,7 +3250,7 @@ function VantixUI:CreateWindow(config)
 			BackgroundTransparency = 1,
 			Text                   = "×",
 			TextColor3             = K.sub,
-			Font                   = Enum.Font.GothamBold,
+			Font                   = Enum.Font.BuilderSansBold,
 			TextSize               = 18,
 			Size                   = UDim2.new(0, 26, 0, 26),
 			Position               = UDim2.new(1, -30, 0, 4),
@@ -3488,6 +3511,7 @@ function VantixUI:CreateNewWindow(config)
 	config = config or {}
 	local width = (config.Size and config.Size[1]) or 300
 	local title = config.Title or "Panel"
+	local panelLayout = config.Layout == "Horizontal" and "Horizontal" or "Vertical"
 
 	-- same stealth parent chain as the main window: gethui -> cloneref(CoreGui) -> CoreGui
 	local parent = CoreGui
@@ -3514,28 +3538,51 @@ function VantixUI:CreateNewWindow(config)
 	})
 	card.AutomaticSize = Enum.AutomaticSize.Y
 
+	local cardScale = inst("UIScale", { Scale = 0.94 }, card)
+	tw(cardScale, { Scale = 1 }, 0.28, Enum.EasingStyle.Back):Play()
+
 	local glow = frame(card, {
-		name = "OuterGlow", colorKey = "white", trans = 0.93,
+		name = "OuterGlow", colorKey = "white", trans = 1,
 		size = UDim2.new(1, 10, 1, 10), pos = UDim2.new(0, -5, 0, -5), z = 1,
 	})
 	rnd(glow, 14)
+	tw(glow, { BackgroundTransparency = 0.93 }, 0.22, Enum.EasingStyle.Quint):Play()
 
-	local panel = frame(card, { name = "Panel", colorKey = "bg", size = UDim2.new(1, 0, 0, 0), z = 2 })
+	local panel = inst("CanvasGroup", {
+		Name = "Panel", BackgroundColor3 = K.bg, GroupTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0), ZIndex = 2,
+	}, card)
 	panel.AutomaticSize = Enum.AutomaticSize.Y
 	brd(panel, "border", 1)
 	rnd(panel, CORNER)
+	registerThemeUpdater(function() panel.BackgroundColor3 = K.bg end, panel)
 	inst("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }, panel)
+	tw(panel, { GroupTransparency = 0 }, 0.22, Enum.EasingStyle.Quint):Play()
 
 	local header = frame(panel, { name = "Header", colorKey = "surface", size = UDim2.new(1, 0, 0, 38), z = 3 })
 	rnd(header, CORNER)
+	local headerGlint = inst("UIGradient", {
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.82),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+		Color = ColorSequence.new(K.white),
+	}, header)
+	registerThemeUpdater(function()
+		headerGlint.Color = ColorSequence.new(K.white)
+	end, headerGlint)
 	frame(header, {
 		name = "Accent", colorKey = "white",
 		size = UDim2.new(1, 0, 0, 2), pos = UDim2.new(0, 0, 1, -2), z = 4,
 	})
 	local titleLbl = lbl(header, {
-		text = title, font = Enum.Font.GothamBold, size = 14,
+		text = title, font = Enum.Font.BuilderSansBold, size = 14,
 		sz = UDim2.new(1, -54, 1, 0), pos = UDim2.new(0, 14, 0, 0),
 	})
+
+	header.MouseEnter:Connect(function() tw(header, { BackgroundColor3 = K.border }, 0.12):Play() end)
+	header.MouseLeave:Connect(function() tw(header, { BackgroundColor3 = K.surface }, 0.12):Play() end)
 
 	local closeBtn = btn(header, {
 		name = "Close", colorKey = "raised", trans = 1,
@@ -3550,7 +3597,7 @@ function VantixUI:CreateNewWindow(config)
 	if not lucide then
 		closeIc.Visible = false
 		closeTxt = lbl(closeBtn, {
-			text = "X", font = Enum.Font.GothamBold, size = 13, colorKey = "sub",
+			text = "X", font = Enum.Font.BuilderSansBold, size = 13, colorKey = "sub",
 			sz = UDim2.fromScale(1, 1), xa = Enum.TextXAlignment.Center, ya = Enum.TextYAlignment.Center, z = 6,
 		})
 	end
@@ -3565,11 +3612,31 @@ function VantixUI:CreateNewWindow(config)
 		if closeTxt then tw(closeTxt, { TextColor3 = K.sub }, 0.1):Play() end
 	end)
 
-	local body = frame(panel, { name = "Body", trans = 1, size = UDim2.new(1, 0, 0, 0), z = 3 })
-	body.AutomaticSize = Enum.AutomaticSize.Y
+	local body = frame(panel, {
+		name = "Body", trans = 1,
+		size = panelLayout == "Horizontal" and UDim2.new(0, 0, 0, 0) or UDim2.new(1, 0, 0, 0),
+		z = 3,
+	})
+	body.AutomaticSize = panelLayout == "Horizontal" and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y
 	body.LayoutOrder = 1
 	pad(body, 12, 12, 10, 12)
-	inst("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }, body)
+	inst("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		FillDirection = panelLayout == "Horizontal" and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical,
+		VerticalAlignment = panelLayout == "Horizontal" and Enum.VerticalAlignment.Center or Enum.VerticalAlignment.Top,
+		Padding = UDim.new(0, panelLayout == "Horizontal" and 8 or 6),
+	}, body)
+
+	if panelLayout == "Horizontal" then
+		-- body auto-sizes purely from its own chip children (real, offset-based widths),
+		-- then that resolved width is mirrored onto card explicitly rather than through
+		-- another layer of AutomaticSize+Scale, which fed back into itself and diverged
+		local function syncWidth()
+			card.Size = UDim2.new(0, body.AbsoluteSize.X, 0, 0)
+		end
+		body:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncWidth)
+		task.defer(syncWidth)
+	end
 
 	local dragging, startPos, startInput
 	header.InputBegan:Connect(function(input)
@@ -3577,16 +3644,22 @@ function VantixUI:CreateNewWindow(config)
 			dragging, startInput, startPos = true, input.Position, card.Position
 		end
 	end)
-	UIS.InputChanged:Connect(function(input)
+	local dragChangedConn = UIS.InputChanged:Connect(function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local d = input.Position - startInput
 			card.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
 		end
 	end)
-	UIS.InputEnded:Connect(function(input)
+	local dragEndedConn = UIS.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = false
 		end
+	end)
+	-- these are UserInputService-level connections, so they outlive the panel unless
+	-- explicitly disconnected here; sg:Destroy() alone would otherwise leak them forever
+	sg.Destroying:Connect(function()
+		dragChangedConn:Disconnect()
+		dragEndedConn:Disconnect()
 	end)
 
 	local Panel = { Gui = sg, Card = card }
@@ -3597,17 +3670,114 @@ function VantixUI:CreateNewWindow(config)
 		if config.OnClose then pcall(config.OnClose) end
 	end)
 
-	function Panel:AddRow(label, accentKey)
+	function Panel:AddRow(label, accentKeyOrOpts)
+		local accentKey, valueColorKey, style
+		if typeof(accentKeyOrOpts) == "table" then
+			accentKey = accentKeyOrOpts.AccentKey
+			valueColorKey = accentKeyOrOpts.ValueColorKey
+			style = accentKeyOrOpts.Style
+		else
+			accentKey = accentKeyOrOpts
+		end
+		style = style or "Horizontal"
 		order = order + 1
+
+		local function hoverable(row)
+			row.Active = true
+			row.MouseEnter:Connect(function() tw(row, { BackgroundColor3 = K.border }, 0.12):Play() end)
+			row.MouseLeave:Connect(function() tw(row, { BackgroundColor3 = K.surface }, 0.12):Play() end)
+		end
+
+		local function accentTick(row, inset)
+			if not accentKey then return end
+			local tick = frame(row, {
+				name = "Tick", colorKey = accentKey,
+				size = UDim2.new(0, 2, 1, -inset * 2), pos = UDim2.new(0, 0, 0.5, 0), anchor = Vector2.new(0, 0.5), z = 6,
+			})
+			rnd(tick, 1)
+		end
+
+		-- a panel laid out Horizontally needs every stat as an auto-width chip so they can
+		-- sit side by side; full-width bar rows (the Horizontal row Style) can't coexist with
+		-- that flow, so the panel's own orientation overrides the per-row Style here
+		if panelLayout == "Horizontal" then
+			local row = frame(body, { name = "Row", colorKey = "surface", size = UDim2.new(0, 0, 0, 0), z = 4 })
+			row.AutomaticSize = Enum.AutomaticSize.XY
+			row.LayoutOrder = order
+			rnd(row, 6)
+			hoverable(row)
+			pad(row, 10, 10, 6, 6)
+			inst("UIListLayout", {
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				Padding = UDim.new(0, 2),
+			}, row)
+
+			local top = lbl(row, {
+				text = label or "", font = Enum.Font.BuilderSansMedium, size = 11, colorKey = accentKey or "sub",
+				sz = UDim2.new(0, 0, 0, 14), z = 5, xa = Enum.TextXAlignment.Center,
+			})
+			top.AutomaticSize = Enum.AutomaticSize.X
+			top.LayoutOrder = 1
+
+			local bottom = lbl(row, {
+				text = "-", font = Enum.Font.BuilderSansBold, size = 14, colorKey = valueColorKey or "text",
+				sz = UDim2.new(0, 0, 0, 18), z = 5, xa = Enum.TextXAlignment.Center,
+			})
+			bottom.AutomaticSize = Enum.AutomaticSize.X
+			bottom.LayoutOrder = 2
+
+			return {
+				Instance = row,
+				Set      = function(_, v) bottom.Text = tostring(v) end,
+				SetLabel = function(_, t) top.Text = tostring(t) end,
+				Destroy  = function() row:Destroy() end,
+			}
+		end
+
+		if style == "Vertical" then
+			local row = frame(body, { name = "Row", colorKey = "surface", size = UDim2.new(1, 0, 0, 0), z = 4 })
+			row.AutomaticSize = Enum.AutomaticSize.Y
+			row.LayoutOrder = order
+			rnd(row, 6)
+			hoverable(row)
+			accentTick(row, 6)
+
+			local stack = frame(row, { name = "Stack", trans = 1, size = UDim2.new(1, 0, 0, 0), z = 5 })
+			stack.AutomaticSize = Enum.AutomaticSize.Y
+			pad(stack, 10, 10, 6, 6)
+			inst("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2) }, stack)
+
+			local top = lbl(stack, {
+				text = label or "", font = Enum.Font.BuilderSansMedium, size = 11, colorKey = accentKey or "sub",
+				sz = UDim2.new(1, 0, 0, 14), z = 6,
+			})
+			top.LayoutOrder = 1
+			local bottom = lbl(stack, {
+				text = "-", font = Enum.Font.BuilderSansBold, size = 14, colorKey = valueColorKey or "text",
+				sz = UDim2.new(1, 0, 0, 18), z = 6,
+			})
+			bottom.LayoutOrder = 2
+			bottom.TextTruncate = Enum.TextTruncate.AtEnd
+			return {
+				Instance = row,
+				Set      = function(_, v) bottom.Text = tostring(v) end,
+				SetLabel = function(_, t) top.Text = tostring(t) end,
+				Destroy  = function() row:Destroy() end,
+			}
+		end
+
 		local row = frame(body, { name = "Row", colorKey = "surface", size = UDim2.new(1, 0, 0, 22), z = 4 })
 		row.LayoutOrder = order
 		rnd(row, 6)
+		hoverable(row)
+		accentTick(row, 4)
 		local left = lbl(row, {
-			text = label or "", font = Enum.Font.GothamMedium, size = 12, colorKey = accentKey or "sub",
+			text = label or "", font = Enum.Font.BuilderSansMedium, size = 12, colorKey = accentKey or "sub",
 			sz = UDim2.new(0.45, -8, 1, 0), pos = UDim2.new(0, 10, 0, 0),
 		})
 		local right = lbl(row, {
-			text = "-", font = Enum.Font.GothamBold, size = 12,
+			text = "-", font = Enum.Font.BuilderSansBold, size = 12, colorKey = valueColorKey,
 			sz = UDim2.new(0.55, -10, 1, 0), pos = UDim2.new(0.45, 0, 0, 0),
 			xa = Enum.TextXAlignment.Right,
 		})
@@ -3622,10 +3792,27 @@ function VantixUI:CreateNewWindow(config)
 
 	function Panel:AddHeader(text, accentKey)
 		order = order + 1
+
+		if panelLayout == "Horizontal" then
+			local row = frame(body, { name = "Head", trans = 1, size = UDim2.new(0, 0, 0, 0), z = 4 })
+			row.AutomaticSize = Enum.AutomaticSize.XY
+			row.LayoutOrder = order
+			local l = lbl(row, {
+				text = text or "", font = Enum.Font.BuilderSansBold, size = 12, colorKey = accentKey or "white",
+				sz = UDim2.new(0, 0, 0, 16), z = 5,
+			})
+			l.AutomaticSize = Enum.AutomaticSize.X
+			return {
+				Instance = row,
+				Set     = function(_, t) l.Text = tostring(t) end,
+				Destroy = function() row:Destroy() end,
+			}
+		end
+
 		local row = frame(body, { name = "Head", trans = 1, size = UDim2.new(1, 0, 0, 16), z = 4 })
 		row.LayoutOrder = order
 		local l = lbl(row, {
-			text = text or "", font = Enum.Font.GothamBold, size = 12, colorKey = accentKey or "white",
+			text = text or "", font = Enum.Font.BuilderSansBold, size = 12, colorKey = accentKey or "white",
 			sz = UDim2.new(1, -4, 1, 0), pos = UDim2.new(0, 4, 0, 0),
 		})
 		return {
@@ -3637,7 +3824,12 @@ function VantixUI:CreateNewWindow(config)
 
 	function Panel:AddSeparator()
 		order = order + 1
-		local sep = frame(body, { name = "Sep", colorKey = "border", size = UDim2.new(1, 0, 0, 1), z = 4 })
+		local sep
+		if panelLayout == "Horizontal" then
+			sep = frame(body, { name = "Sep", colorKey = "border", size = UDim2.new(0, 1, 0, 32), z = 4 })
+		else
+			sep = frame(body, { name = "Sep", colorKey = "border", size = UDim2.new(1, 0, 0, 1), z = 4 })
+		end
 		sep.LayoutOrder = order
 		return sep
 	end
