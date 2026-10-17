@@ -3852,6 +3852,121 @@ function VantixUI:CreateNewWindow(config)
 		return sep
 	end
 
+	-- Panel:AddButton("Text", callback)  or  Panel:AddButton({ Text, Callback, AccentKey })
+	function Panel:AddButton(textOrOpts, callback)
+		local opts = typeof(textOrOpts) == "table" and textOrOpts or { Text = textOrOpts, Callback = callback }
+		local accentKey = opts.AccentKey
+		order = order + 1
+
+		local b = btn(body, {
+			name = "Button", colorKey = "raised", tcKey = accentKey or "text",
+			text = opts.Text or "Button", font = Enum.Font.BuilderSansBold, size = 12,
+			sz = panelLayout == "Horizontal" and UDim2.new(0, 0, 0, 30) or UDim2.new(1, 0, 0, 28), z = 4,
+		})
+		b.LayoutOrder = order
+		if panelLayout == "Horizontal" then
+			b.AutomaticSize = Enum.AutomaticSize.X
+			pad(b, 12, 12, 0, 0)
+		end
+		rnd(b, 6)
+		brd(b, "border", 1)
+
+		b.MouseEnter:Connect(function()
+			b:SetAttribute("Hovered", true)
+			tw(b, { BackgroundColor3 = K.border }, 0.12):Play()
+		end)
+		b.MouseLeave:Connect(function()
+			b:SetAttribute("Hovered", nil)
+			tw(b, { BackgroundColor3 = K.raised }, 0.12):Play()
+		end)
+		b.MouseButton1Click:Connect(function()
+			if opts.Callback then task.spawn(opts.Callback) end
+		end)
+
+		return {
+			Instance = b,
+			SetText  = function(_, t) b.Text = tostring(t) end,
+			Destroy  = function() b:Destroy() end,
+		}
+	end
+
+	-- Panel:AddToggle("Label", default, callback)  or  Panel:AddToggle({ Text, Default, Callback })
+	function Panel:AddToggle(textOrOpts, default, callback)
+		local opts = typeof(textOrOpts) == "table" and textOrOpts or { Text = textOrOpts, Default = default, Callback = callback }
+		local state = opts.Default == true
+		order = order + 1
+
+		local horizontal = panelLayout == "Horizontal"
+		local row = btn(body, {
+			name = "Toggle", colorKey = "surface", text = "",
+			sz = horizontal and UDim2.new(0, 0, 0, 30) or UDim2.new(1, 0, 0, 28), z = 4,
+		})
+		row.LayoutOrder = order
+		rnd(row, 6)
+
+		local text = lbl(row, {
+			text = opts.Text or "Toggle", font = Enum.Font.BuilderSansMedium, size = 12, colorKey = "sub",
+			sz = horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, -52, 1, 0), pos = UDim2.new(0, 10, 0, 0), z = 5,
+		})
+		text.TextTruncate = Enum.TextTruncate.AtEnd
+		if horizontal then
+			-- chip: label and switch flow side by side in a list so the row sizes itself
+			text.AutomaticSize = Enum.AutomaticSize.X
+			text.Position = UDim2.new(0, 0, 0, 0)
+			text.LayoutOrder = 1
+			row.AutomaticSize = Enum.AutomaticSize.X
+			pad(row, 10, 10, 0, 0)
+			inst("UIListLayout", {
+				SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal,
+				VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 8),
+			}, row)
+		end
+
+		local track = frame(row, {
+			name = "Track", colorKey = "border",
+			size = UDim2.new(0, 30, 0, 16), pos = UDim2.new(1, -10, 0.5, 0), anchor = Vector2.new(1, 0.5), z = 5,
+		})
+		if horizontal then
+			track.Position = UDim2.new(0, 0, 0, 0)
+			track.AnchorPoint = Vector2.zero
+			track.LayoutOrder = 2
+		end
+		rnd(track, 8)
+		local knob = frame(track, {
+			name = "Knob", color = Color3.fromRGB(235, 235, 235),
+			size = UDim2.new(0, 12, 0, 12), pos = UDim2.new(0, 2, 0.5, 0), anchor = Vector2.new(0, 0.5), z = 6,
+		})
+		rnd(knob, 6)
+
+		local function render(animate)
+			local goals = { BackgroundColor3 = state and K.white or K.border }
+			local knobPos = state and UDim2.new(1, -14, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
+			if animate then
+				tw(track, goals, 0.15):Play()
+				tw(knob, { Position = knobPos }, 0.15):Play()
+			else
+				track.BackgroundColor3 = goals.BackgroundColor3
+				knob.Position = knobPos
+			end
+		end
+		render(false)
+		registerThemeUpdater(function() render(false) end, track)
+
+		row.MouseEnter:Connect(function() tw(row, { BackgroundColor3 = K.border }, 0.12):Play() end)
+		row.MouseLeave:Connect(function() tw(row, { BackgroundColor3 = K.surface }, 0.12):Play() end)
+
+		local handle = { Instance = row }
+		function handle:Set(value, silent)
+			state = value == true
+			render(true)
+			if not silent and opts.Callback then task.spawn(opts.Callback, state) end
+		end
+		function handle:Get() return state end
+		function handle:Destroy() row:Destroy() end
+		row.MouseButton1Click:Connect(function() handle:Set(not state) end)
+		return handle
+	end
+
 	function Panel:SetTitle(text) titleLbl.Text = tostring(text) end
 	function Panel:SetVisible(on) sg.Enabled = on ~= false end
 	function Panel:Destroy() sg:Destroy() end
