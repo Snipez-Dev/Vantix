@@ -1457,6 +1457,8 @@ function VantixUI:CreateWindow(config)
 
 	local minWinW, minWinH = WIN_W, WIN_H
 	local maxWinW, maxWinH = 900, 700
+	-- a resize during the intro must win over the intro's own size animation / reveal reset
+	local userResized, introTween = false, nil
 
 	local resizeHandle = frame(win,{
 		name="ResizeHandle", colorKey="white", trans=1,
@@ -1537,6 +1539,8 @@ function VantixUI:CreateWindow(config)
 				local dy = inp.Position.Y - rStartInput.Y
 				local nw = math.clamp(rStartSize.X + dx, minWinW, maxWinW)
 				local nh = math.clamp(rStartSize.Y + dy, minWinH, maxWinH)
+				userResized = true
+				if introTween then pcall(function() introTween:Cancel() end); introTween = nil end
 				win.Size = UDim2.new(0, nw, 0, nh)
 			end
 		end)
@@ -3338,7 +3342,7 @@ function VantixUI:CreateWindow(config)
 	local function reveal()
 		if revealed then return end
 		revealed = true
-		win.Size = UDim2.new(0, WIN_W, 0, WIN_H)
+		if not userResized then win.Size = UDim2.new(0, WIN_W, 0, WIN_H) end
 		titlebar.Visible = true
 		body.Visible = true
 		cursorSink.Visible = true
@@ -3359,7 +3363,10 @@ function VantixUI:CreateWindow(config)
 	task.spawn(function()
 		local ok = pcall(function()
 			task.wait(0.05)
-			tw(win,{Size=UDim2.new(0,WIN_W,0,WIN_H)},0.38,Enum.EasingStyle.Back,Enum.EasingDirection.Out):Play()
+			if not userResized then
+				introTween = tw(win,{Size=UDim2.new(0,WIN_W,0,WIN_H)},0.38,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+				introTween:Play()
+			end
 			task.wait(0.28)
 
 			logoImg.Position=UDim2.new(0.5,0,0.5,10)
