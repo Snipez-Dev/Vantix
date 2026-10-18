@@ -23,7 +23,8 @@ Window:Notify({
 })
 
 local Flags = {}
-local Panel, accentRow, minRow, keyRow
+local Panel, QuickBar, accentRow, minRow, keyRow, qFpsRow, qPingRow
+local lastPing = "n/a"
 
 local function toHex(c)
 	return string.format("#%02X%02X%02X", math.floor(c.R*255+0.5), math.floor(c.G*255+0.5), math.floor(c.B*255+0.5))
@@ -34,12 +35,15 @@ local MainTab = Window:AddTab("Main", "house")
 MainTab:AddLabel("Welcome to the Vantix Showcase", "info")
 MainTab:AddSeparator()
 
+local console = MainTab:AddConsole({ Title = "Activity Log", Height = 110 })
+console:Write("Showcase loaded")
+
 local godmode = MainTab:AddToggle({
 	Title    = "God Mode",
 	Subtitle = "Become invincible",
 	Icon     = "shield",
 	Default  = false,
-	Risky    = true,
+	Risky    = "Manipulating MaxHealth is flagged by some anti-cheats within seconds — only enable on servers you trust.",
 	Tooltip  = "Some anti-cheats flag health manipulation",
 	Callback = function(state)
 		Flags.GodMode = state
@@ -49,6 +53,7 @@ local godmode = MainTab:AddToggle({
 			hum.MaxHealth = state and math.huge or 100
 			hum.Health = hum.MaxHealth
 		end
+		console:Write("God Mode "..(state and "enabled" or "disabled"))
 		Window:Notify({
 			Title    = "God Mode",
 			Text     = state and "Enabled" or "Disabled",
@@ -63,10 +68,11 @@ local autoFarm = MainTab:AddToggle({
 	Subtitle = "Automatically collects nearby items",
 	Icon     = "flask-conical",
 	Default  = false,
-	Beta     = true,
+	Beta     = "Still being tuned against the newer item spawn tables — may miss items or grab the wrong ones.",
 	Tooltip  = "Still being tuned, may miss items or behave inconsistently",
 	Callback = function(state)
 		Flags.AutoFarm = state
+		console:Write("Auto Farm "..(state and "enabled" or "disabled"))
 		Window:Notify({
 			Title    = "Auto Farm",
 			Text     = state and "Enabled" or "Disabled",
@@ -98,6 +104,7 @@ MainTab:AddButton({
 	Text     = "Press Me",
 	Tooltip  = "Fires Window:Notify as a demo",
 	Callback = function()
+		console:Write("Custom button pressed")
 		Window:Notify({Title="Pressed", Text="You pressed the custom button!"})
 	end,
 })
@@ -110,6 +117,7 @@ MainTab:AddButton({
 	Beta     = true,
 	Tooltip  = "New scan logic, hasn't been tested on every map yet",
 	Callback = function()
+		console:Write("Item cache rebuilt")
 		Window:Notify({Title="Item Cache", Text="Rebuilt", Duration=2})
 	end,
 })
@@ -261,7 +269,9 @@ local uiKeybind = SettingsTab:AddKeybind({
 	Default  = Enum.KeyCode.Insert,
 	Tooltip  = "Standalone AddKeybind demo, separate from Window's own toggle key",
 	Callback = function()
-		local sg = game:GetService("CoreGui"):FindFirstChild("VantixUI")
+		local parent = game:GetService("CoreGui")
+		pcall(function() if typeof(gethui) == "function" then parent = gethui() end end)
+		local sg = parent:FindFirstChild("VantixUI")
 			or game.Players.LocalPlayer.PlayerGui:FindFirstChild("VantixUI")
 		if sg then sg.Enabled = not sg.Enabled end
 	end,
@@ -361,6 +371,7 @@ SettingsTab:AddButton({
 	Text     = "Unload",
 	Callback = function()
 		Panel:Destroy()
+		QuickBar:Destroy()
 		Window:Destroy()
 	end,
 })
@@ -378,6 +389,32 @@ accentRow:Set(toHex(VantixUI:GetAccentColor()))
 Panel:AddSeparator()
 Panel:AddHeader("Player")
 local posRow = Panel:AddRow("Position")
+Panel:AddRow("Character", {
+	Style         = "Vertical",
+	AccentKey     = "white",
+	ValueColorKey = "text",
+}):Set(game.Players.LocalPlayer.Name)
+Panel:AddSeparator()
+Panel:AddHeader("Actions")
+Panel:AddToggle("Show Quick Bar", true, function(on)
+	QuickBar:SetVisible(on)
+end)
+Panel:AddButton("Clear activity log", function()
+	console:Clear()
+end)
+
+QuickBar = VantixUI:CreateNewWindow({
+	Title    = "Quick Bar",
+	Layout   = "Horizontal",
+	Position = UDim2.new(0, 20, 0, 88),
+})
+qFpsRow  = QuickBar:AddRow("FPS")
+QuickBar:AddSeparator()
+qPingRow = QuickBar:AddRow("Ping")
+QuickBar:AddSeparator()
+QuickBar:AddButton({ Text = "Log ping", Callback = function()
+	console:Write("Ping: "..lastPing)
+end })
 
 task.spawn(function()
 	local RunService = game:GetService("RunService")
@@ -388,6 +425,7 @@ task.spawn(function()
 		local now = os.clock()
 		if now - last >= 1 then
 			fpsRow:Set(frames)
+			qFpsRow:Set(frames)
 			frames, last = 0, now
 		end
 		local char = game.Players.LocalPlayer.Character
@@ -399,7 +437,11 @@ task.spawn(function()
 		local ok, ping = pcall(function()
 			return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
 		end)
-		if ok then pingRow:Set(string.format("%dms", ping)) end
+		if ok then
+			lastPing = string.format("%dms", ping)
+			pingRow:Set(lastPing)
+			qPingRow:Set(lastPing)
+		end
 		minRow:Set(Window:IsMinimized() and "Yes" or "No")
 		local key = Window:GetToggleKey()
 		keyRow:Set(key and key.Name or "None")
