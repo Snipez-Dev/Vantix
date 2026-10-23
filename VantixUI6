@@ -4,8 +4,7 @@ local RunService   = game:GetService("RunService")
 local UIS          = game:GetService("UserInputService")
 local CoreGui      = game:GetService("CoreGui")
 
--- run too early (autoexec while joining, teleports) and the LocalPlayer / CurrentCamera do not exist yet,
--- which crashed CreateWindow on player.DisplayName; wait for them instead
+-- autoexec can run before LocalPlayer/camera exist
 if not game:IsLoaded() then game.Loaded:Wait() end
 local player = Players.LocalPlayer
 while not player do
@@ -1331,7 +1330,7 @@ end
 local VantixUI = {}
 VantixUI.Themes = THEMES
 
--- CreateNewWindow panels live alongside the main window and close with it
+-- panels close together with the main window
 local VantixPanels = {}
 local function closeVantixPanels()
 	for _, p in ipairs(VantixPanels) do pcall(function() p:Destroy() end) end
@@ -1387,7 +1386,7 @@ function VantixUI:CreateWindow(config)
 	local TITLE  = config.Title or "Vantix"
 	local LOGO   = (config.Logo or config.LogoID) and tostring(config.Logo or config.LogoID) or LOGO_ASSET
 
-	-- stealth parent chain: gethui -> cloneref(CoreGui) -> CoreGui
+	-- gethui -> cloneref(CoreGui) -> CoreGui
 	local guiParent = CoreGui
 	pcall(function()
 		if typeof(gethui) == "function" then
@@ -1415,8 +1414,7 @@ function VantixUI:CreateWindow(config)
 		return c
 	end
 
-	-- runs on every way the gui can die (X button, :Destroy, re-execute, executor cleanup),
-	-- so features and hotkeys of a dead window never keep running
+	-- X button, Destroy, re-exec: turn everything off
 	local tornDown = false
 	local function teardown()
 		if tornDown then return end
@@ -1468,7 +1466,7 @@ function VantixUI:CreateWindow(config)
 
 	local minWinW, minWinH = WIN_W, WIN_H
 	local maxWinW, maxWinH = 900, 700
-	-- a resize during the intro must win over the intro's own size animation / reveal reset
+	-- keep user resize during the intro
 	local userResized, introTween = false, nil
 
 	local resizeHandle = frame(win,{
@@ -1487,7 +1485,7 @@ function VantixUI:CreateWindow(config)
 		resizeStrk.Color = K.white
 	end, resizeStrk)
 
-	-- transparent line just below the window that doubles as a drag handle to move the UI
+	-- drag handle under the window
 	local grabLine = frame(win,{
 		name="GrabLine", colorKey="white", trans=0.62,
 		size=UDim2.new(0.4, 0, 0, 3),
@@ -1619,7 +1617,7 @@ function VantixUI:CreateWindow(config)
 		}),
 	},shimF)
 
-	local body -- forward declaration so minimize handler can access it
+	local body
 
 	local titlebar = frame(win,{
 		name="Titlebar", colorKey="bg",
@@ -1781,8 +1779,7 @@ function VantixUI:CreateWindow(config)
 	clickArea.MouseEnter:Connect(function() tw(minOverlay,{BackgroundColor3=K.raised},0.12):Play() end)
 	clickArea.MouseLeave:Connect(function() tw(minOverlay,{BackgroundColor3=K.bg},0.12):Play() end)
 
-	-- the ScreenGui ignores the topbar inset, so a scale-based Y can render above the
-	-- visible area on setups with UI scaling; offset past the inset so the pill stays on-screen
+	-- stay below the topbar inset
 	local topInset = 36
 	pcall(function() topInset = game:GetService("GuiService"):GetGuiInset().Y end)
 	local savedMinPos = UDim2.new(0.5, 0, 0, topInset + 70)
@@ -1832,8 +1829,7 @@ function VantixUI:CreateWindow(config)
 		minOverlay.Position = UDim2.new(savedMinPos.X.Scale, savedMinPos.X.Offset, savedMinPos.Y.Scale, savedMinPos.Y.Offset - 40)
 		tw(minOverlay, {Position = savedMinPos}, 0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
 
-		-- collapses toward wherever the pill actually rests (savedMinPos), not just in place,
-		-- so the shrink reads as "becoming the pill" instead of two disconnected animations
+		-- shrink towards the pill
 		local t = tw(win, {
 			Size = UDim2.new(0, pillW, 0, 0),
 			Position = savedMinPos,
@@ -1866,7 +1862,7 @@ function VantixUI:CreateWindow(config)
 				rW = win:GetAttribute("RestoreSizeX") or math.clamp(config.Size[1], 200, vp.X - 20)
 				rH = win:GetAttribute("RestoreSizeY") or math.clamp(config.Size[2], 200, vp.Y - 40)
 			end
-			-- grows back out from the pill's position, mirroring how it collapsed into it
+			-- grow back out of the pill
 			win.Size = UDim2.new(0, pillW, 0, 0)
 			win.Position = savedMinPos
 			win.BackgroundTransparency = 1
@@ -1970,7 +1966,7 @@ function VantixUI:CreateWindow(config)
 		end
 	end
 
-	if true then -- always create sidebar (desktop + mobile)
+	if true then
 		sidebar = frame(body,{
 			name="Sidebar", colorKey="bg", trans=1,
 			size=UDim2.new(0,SIDE_W,1,0), z=5,
@@ -1986,7 +1982,7 @@ function VantixUI:CreateWindow(config)
 		sidebarScroll = inst("ScrollingFrame", {
 			Name="SidebarScroll", Size=UDim2.new(1,0,1,-profileH), Position=UDim2.new(0,0,0,0),
 			BackgroundTransparency=1, BorderSizePixel=0,
-			ScrollBarThickness=0, -- Hidden scrollbar for cleaner UI
+			ScrollBarThickness=0,
 			ScrollingDirection=Enum.ScrollingDirection.Y,
 			CanvasSize=UDim2.new(0,0,0,0),
 			AutomaticCanvasSize=Enum.AutomaticSize.Y,
@@ -2083,7 +2079,7 @@ function VantixUI:CreateWindow(config)
 			ColorSequenceKeypoint.new(0.45,K.logoMid),
 			ColorSequenceKeypoint.new(1,   K.logoBot),
 		})
-		-- same asset mark as the splash logo, blown up and faded as a background watermark
+		-- background logo
 		local bgWrap = frame(contentArea,{
 			name="BgLogo", colorKey="bg", trans=1,
 			size=UDim2.new(0,BG_W,0,BG_H),
@@ -2279,7 +2275,7 @@ function VantixUI:CreateWindow(config)
 		})
 
 		local body = lbl(card,{
-			text=customText or "Features marked in red carry extra risk of detection, instability, or unintended side effects. Make sure you understand what you're enabling before you continue.",
+			text=customText or "Red features can get you detected or break stuff. Only turn them on if you know what they do.",
 			font=Enum.Font.BuilderSans, size=13, colorKey="sub", wrap=true,
 			sz=UDim2.new(1,0,0,0), pos=UDim2.new(0,0,0,0), z=502, ya=Enum.TextYAlignment.Top,
 		})
@@ -2405,7 +2401,7 @@ function VantixUI:CreateWindow(config)
 		})
 
 		local body = lbl(card,{
-			text=customText or "Features marked in yellow are still in testing and may be incomplete, unstable, or change without notice. Use with that in mind.",
+			text=customText or "Yellow features are still being tested and can be buggy or change at any time.",
 			font=Enum.Font.BuilderSans, size=13, colorKey="sub", wrap=true,
 			sz=UDim2.new(1,0,0,0), pos=UDim2.new(0,0,0,0), z=502, ya=Enum.TextYAlignment.Top,
 		})
@@ -3028,8 +3024,7 @@ function VantixUI:CreateWindow(config)
 			local r = makeRow(opts.Title or "Keybind", opts.Subtitle, opts.Icon, opts.Risky, opts.Tooltip, opts.Beta)
 			local changedEvent = Instance.new("BindableEvent")
 
-			-- a bind is an Enum.KeyCode, or Enum.UserInputType.MouseButton3 (middle click);
-			-- Roblox does not report the side buttons (Mouse4/5), so those cannot be bound
+			-- KeyCode or MouseButton3 (mouse 4/5 dont fire)
 			local function keyLabel(key)
 				if key == Enum.KeyCode.Unknown then return "None" end
 				if key == Enum.UserInputType.MouseButton3 then return "Mouse3" end
@@ -3113,7 +3108,7 @@ function VantixUI:CreateWindow(config)
 			r.LayoutOrder = rowCounter
 		end
 
-		-- dropdown bound to the window's minimize hotkey, so users can rebind it in-menu
+		-- dropdown for the minimize key
 		function Tab:AddToggleKey(opts)
 			opts = opts or {}
 			local keys = opts.Keys or {
@@ -3364,8 +3359,7 @@ function VantixUI:CreateWindow(config)
 	end
 
 
-	-- the reveal must survive executors that hook TweenService/RunService and break
-	-- the intro animation, otherwise the window stays stuck behind the load layer
+	-- some executors break the intro tweens, force the reveal
 	local revealed = false
 	local function reveal()
 		if revealed then return end
@@ -3548,7 +3542,7 @@ function VantixUI:CreateWindow(config)
 		return minimized
 	end
 
-	-- rebind (or disable with nil) the built-in minimize/restore hotkey
+	-- nil = no hotkey
 	function Window:SetToggleKey(key)
 		setToggleKey(key)
 	end
@@ -3566,7 +3560,7 @@ function VantixUI:CreateNewWindow(config)
 	local title = config.Title or "Panel"
 	local panelLayout = config.Layout == "Horizontal" and "Horizontal" or "Vertical"
 
-	-- same stealth parent chain as the main window: gethui -> cloneref(CoreGui) -> CoreGui
+	-- gethui -> cloneref(CoreGui) -> CoreGui
 	local parent = CoreGui
 	pcall(function()
 		if typeof(gethui) == "function" then
@@ -3681,9 +3675,7 @@ function VantixUI:CreateNewWindow(config)
 	}, body)
 
 	if panelLayout == "Horizontal" then
-		-- body auto-sizes purely from its own chip children (real, offset-based widths),
-		-- then that resolved width is mirrored onto card explicitly rather than through
-		-- another layer of AutomaticSize+Scale, which fed back into itself and diverged
+		-- copy the body width onto the card (AutomaticSize + Scale looped)
 		local function syncWidth()
 			card.Size = UDim2.new(0, body.AbsoluteSize.X, 0, 0)
 		end
@@ -3708,8 +3700,7 @@ function VantixUI:CreateNewWindow(config)
 			dragging = false
 		end
 	end)
-	-- these are UserInputService-level connections, so they outlive the panel unless
-	-- explicitly disconnected here; sg:Destroy() alone would otherwise leak them forever
+	-- UIS connections dont die with the gui
 	sg.Destroying:Connect(function()
 		dragChangedConn:Disconnect()
 		dragEndedConn:Disconnect()
@@ -3750,9 +3741,7 @@ function VantixUI:CreateNewWindow(config)
 			rnd(tick, 1)
 		end
 
-		-- a panel laid out Horizontally needs every stat as an auto-width chip so they can
-		-- sit side by side; full-width bar rows (the Horizontal row Style) can't coexist with
-		-- that flow, so the panel's own orientation overrides the per-row Style here
+		-- horizontal panels only work with chip rows
 		if panelLayout == "Horizontal" then
 			local row = frame(body, { name = "Row", colorKey = "surface", size = UDim2.new(0, 0, 0, 0), z = 4 })
 			row.AutomaticSize = Enum.AutomaticSize.XY
@@ -3945,7 +3934,7 @@ function VantixUI:CreateNewWindow(config)
 		})
 		text.TextTruncate = Enum.TextTruncate.AtEnd
 		if horizontal then
-			-- chip: label and switch flow side by side in a list so the row sizes itself
+			-- chip: label + switch
 			text.AutomaticSize = Enum.AutomaticSize.X
 			text.Position = UDim2.new(0, 0, 0, 0)
 			text.LayoutOrder = 1

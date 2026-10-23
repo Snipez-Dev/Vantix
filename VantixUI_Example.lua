@@ -2,6 +2,11 @@ local url = "https://raw.githubusercontent.com/Snipez-Dev/Vantix/refs/heads/main
 
 local VantixUI = loadstring(game:HttpGet(url))()
 
+local Players    = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS        = game:GetService("UserInputService")
+local LP         = Players.LocalPlayer
+
 local Window = VantixUI:CreateWindow({
 	Title       = "Showcase",
 	Theme       = "Vantix",
@@ -17,13 +22,13 @@ Window:CreateTag("discord.gg/GUXhJuaqsF", Color3.fromRGB(88, 101, 242), nil, nil
 
 Window:Notify({
 	Title    = "Welcome",
-	Text     = "Library loaded successfully!",
+	Text     = "Library loaded",
 	Icon     = "check",
 	Duration = 4,
 })
 
 local Flags = {}
-local Panel, QuickBar, accentRow, minRow, keyRow, qFpsRow, qPingRow
+local Panel, QuickBar, accentRow, minRow, keyRow, qFpsRow, qPingRow, zoomConn
 local lastPing = "n/a"
 
 local function toHex(c)
@@ -32,28 +37,25 @@ end
 
 local MainTab = Window:AddTab("Main", "house")
 
-MainTab:AddLabel("Welcome to the Vantix Showcase", "info")
-MainTab:AddSeparator()
-
-local console = MainTab:AddConsole({ Title = "Activity Log", Height = 110 })
-console:Write("Showcase loaded")
+-- created at the bottom of the tab, the callbacks below only use them later
+local status, console
 
 local godmode = MainTab:AddToggle({
 	Title    = "God Mode",
 	Subtitle = "Become invincible",
 	Icon     = "shield",
 	Default  = false,
-	Risky    = "Manipulating MaxHealth is flagged by some anti-cheats within seconds — only enable on servers you trust.",
-	Tooltip  = "Some anti-cheats flag health manipulation",
+	Risky    = "Changing MaxHealth gets picked up by a lot of anti-cheats. Use it on servers you trust.",
+	Tooltip  = "Some anti-cheats flag this",
 	Callback = function(state)
 		Flags.GodMode = state
-		local char = game.Players.LocalPlayer.Character
-		local hum  = char and char:FindFirstChild("Humanoid")
+		local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hum.MaxHealth = state and math.huge or 100
 			hum.Health = hum.MaxHealth
 		end
-		console:Write("God Mode "..(state and "enabled" or "disabled"))
+		status:Set("Status: God Mode " .. (state and "on" or "off"))
+		console:Write("God Mode " .. (state and "enabled" or "disabled"))
 		Window:Notify({
 			Title    = "God Mode",
 			Text     = state and "Enabled" or "Disabled",
@@ -65,14 +67,14 @@ local godmode = MainTab:AddToggle({
 
 local autoFarm = MainTab:AddToggle({
 	Title    = "Auto Farm",
-	Subtitle = "Automatically collects nearby items",
+	Subtitle = "Collects nearby items",
 	Icon     = "flask-conical",
 	Default  = false,
-	Beta     = "Still being tuned against the newer item spawn tables — may miss items or grab the wrong ones.",
-	Tooltip  = "Still being tuned, may miss items or behave inconsistently",
+	Beta     = "Can miss items on some maps, still working on it.",
+	Tooltip  = "Still in testing",
 	Callback = function(state)
 		Flags.AutoFarm = state
-		console:Write("Auto Farm "..(state and "enabled" or "disabled"))
+		console:Write("Auto Farm " .. (state and "enabled" or "disabled"))
 		Window:Notify({
 			Title    = "Auto Farm",
 			Text     = state and "Enabled" or "Disabled",
@@ -88,34 +90,36 @@ local walkspeed = MainTab:AddSlider({
 	Min      = 16,
 	Max      = 200,
 	Default  = 16,
-	Tooltip  = "Applies instantly to your character",
+	Tooltip  = "Applies instantly",
 	Callback = function(value)
-		local char = game.Players.LocalPlayer.Character
-		if char and char:FindFirstChild("Humanoid") then
-			char.Humanoid.WalkSpeed = value
-		end
+		local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+		if hum then hum.WalkSpeed = value end
 	end,
 })
 
+-- every element also has a .Changed signal
+walkspeed.Changed:Connect(function(value)
+	if status then status:Set("Status: walk speed " .. value) end
+end)
+
 MainTab:AddButton({
 	Title    = "Custom Button Label",
-	Subtitle = "The button on the right says 'Press Me'",
+	Subtitle = "The button on the right says Press Me",
 	Icon     = "mouse-pointer",
 	Text     = "Press Me",
-	Tooltip  = "Fires Window:Notify as a demo",
 	Callback = function()
 		console:Write("Custom button pressed")
-		Window:Notify({Title="Pressed", Text="You pressed the custom button!"})
+		Window:Notify({Title="Pressed", Text="You pressed the button"})
 	end,
 })
 
 MainTab:AddButton({
 	Title    = "Rebuild Item Cache",
-	Subtitle = "Rescans the workspace for farmable items",
+	Subtitle = "Rescans the map for items",
 	Icon     = "refresh-cw",
 	Text     = "Rebuild",
 	Beta     = true,
-	Tooltip  = "New scan logic, hasn't been tested on every map yet",
+	Tooltip  = "New scan, not tested on every map",
 	Callback = function()
 		console:Write("Item cache rebuilt")
 		Window:Notify({Title="Item Cache", Text="Rebuilt", Duration=2})
@@ -126,29 +130,34 @@ MainTab:AddSeparator()
 
 MainTab:AddToggleKey({
 	Title    = "UI Toggle Key",
-	Subtitle = "Rebinds the hotkey that hides/shows the window",
+	Subtitle = "Key that hides / shows the window",
 	Icon     = "keyboard",
 })
 
 MainTab:AddButton({
 	Title    = "Reset Toggle Key",
-	Subtitle = "Window:SetToggleKey / Window:GetToggleKey",
+	Subtitle = "Back to RightShift",
 	Icon     = "rotate-ccw",
 	Text     = "Reset",
 	Callback = function()
 		Window:SetToggleKey(Enum.KeyCode.RightShift)
-		Window:Notify({Title="Toggle Key", Text="Reset to "..Window:GetToggleKey().Name, Duration=2})
+		Window:Notify({Title="Toggle Key", Text="Reset to " .. Window:GetToggleKey().Name, Duration=2})
 	end,
 })
+
+MainTab:AddSeparator()
+
+status = MainTab:AddLabel("Status: idle", "activity")
+console = MainTab:AddConsole({ Title = "Activity Log", Height = 110 })
+console:Write("Showcase loaded")
 
 local VisualsTab = Window:AddTab("Visuals", "eye")
 
 local espColor = VisualsTab:AddColorPicker({
 	Title    = "ESP Color",
-	Subtitle = "Pick a color for player ESP",
+	Subtitle = "Color for player ESP",
 	Icon     = "palette",
 	Default  = Color3.fromRGB(255, 0, 0),
-	Tooltip  = "Used to color ESP boxes and name tags",
 	Callback = function(color)
 		Flags.ESPColor = color
 	end,
@@ -166,7 +175,6 @@ local materialDropdown = VisualsTab:AddDropdown({
 		"Grass", "Cobblestone", "Brick", "Foil"
 	},
 	Default  = 1,
-	Tooltip  = "Applied to the chams overlay Material property",
 	Callback = function(selected)
 		Flags.ChamsMaterial = selected
 	end,
@@ -176,7 +184,7 @@ VisualsTab:AddSeparator()
 
 local espElements = VisualsTab:AddMultiDropdown({
 	Title    = "ESP Elements",
-	Subtitle = "Toggle individual ESP visual elements",
+	Subtitle = "Pick what the ESP draws",
 	Icon     = "layers",
 	Options  = {"Names", "Boxes", "Bones", "Chams", "Tools", "Snaplines"},
 	Default  = {"Names", "Boxes"},
@@ -189,14 +197,40 @@ VisualsTab:AddSeparator()
 
 VisualsTab:AddKeybind({
 	Title    = "Toggle ESP",
-	Subtitle = "Press to flip ESP on/off",
+	Subtitle = "Press to turn ESP on / off",
 	Icon     = "crosshair",
 	Default  = Enum.KeyCode.RightAlt,
-	Tooltip  = "Fires every time the key is pressed",
 	Callback = function()
 		Flags.ESPEnabled = not Flags.ESPEnabled
 	end,
 })
+
+-- keybinds take keyboard keys or middle mouse; without a Callback you read the key yourself with :Get()
+local zoomKey = VisualsTab:AddKeybind({
+	Title    = "Hold to Zoom",
+	Subtitle = "Middle mouse by default",
+	Icon     = "zoom-in",
+	Default  = Enum.UserInputType.MouseButton3,
+})
+
+local function isHeld(key)
+	if typeof(key) ~= "EnumItem" or key == Enum.KeyCode.Unknown then return false end
+	if key.EnumType == Enum.UserInputType then return UIS:IsMouseButtonPressed(key) end
+	return UIS:IsKeyDown(key)
+end
+
+local normalFov
+zoomConn = RunService.RenderStepped:Connect(function()
+	local cam = workspace.CurrentCamera
+	if not cam then return end
+	if isHeld(zoomKey:Get()) and not UIS:GetFocusedTextBox() then
+		normalFov = normalFov or cam.FieldOfView
+		cam.FieldOfView = 30
+	elseif normalFov then
+		cam.FieldOfView = normalFov
+		normalFov = nil
+	end
+end)
 
 local SettingsTab = Window:AddTab("Settings", "settings")
 
@@ -211,7 +245,6 @@ SettingsTab:AddDropdown({
 	Icon     = "swatch-book",
 	Options  = themeNames,
 	Default  = Window:GetTheme(),
-	Tooltip  = "Window:SetTheme swaps the whole palette live",
 	Callback = function(selected)
 		Window:SetTheme(selected)
 	end,
@@ -222,7 +255,6 @@ SettingsTab:AddDropdown({
 	Icon     = "droplet",
 	Options  = {"White", "Blue", "Red", "Green", "Purple"},
 	Default  = "White",
-	Tooltip  = "VantixUI:SetAccentColor overrides just the accent",
 	Callback = function(selected)
 		local colors = {
 			White  = Color3.fromRGB(255, 255, 255),
@@ -232,14 +264,13 @@ SettingsTab:AddDropdown({
 			Purple = Color3.fromRGB(170, 110, 240),
 		}
 		VantixUI:SetAccentColor(colors[selected])
-		Panel:SetTitle("Live Stats — "..selected)
+		Panel:SetTitle("Live Stats (" .. selected .. ")")
 		accentRow:Set(toHex(VantixUI:GetAccentColor()))
 	end,
 })
 
 SettingsTab:AddToggle({
 	Title    = "Show Stats Panel",
-	Subtitle = "Panel:SetVisible",
 	Icon     = "gauge",
 	Default  = true,
 	Callback = function(state)
@@ -254,7 +285,6 @@ local configName = SettingsTab:AddTextBox({
 	Icon        = "file-text",
 	Placeholder = "Enter config name...",
 	Default     = "ShowcaseConfig",
-	Tooltip     = "Used as the filename when saving/loading below",
 	Callback    = function(text, enterPressed)
 		if enterPressed then
 			Flags.ConfigName = text
@@ -263,16 +293,15 @@ local configName = SettingsTab:AddTextBox({
 })
 
 local uiKeybind = SettingsTab:AddKeybind({
-	Title    = "Toggle UI Keybind",
-	Subtitle = "Press Insert to hide (independent of the window's built-in toggle key)",
+	Title    = "Hide UI Keybind",
+	Subtitle = "Insert hides the window (separate from the toggle key)",
 	Icon     = "keyboard",
 	Default  = Enum.KeyCode.Insert,
-	Tooltip  = "Standalone AddKeybind demo, separate from Window's own toggle key",
 	Callback = function()
 		local parent = game:GetService("CoreGui")
 		pcall(function() if typeof(gethui) == "function" then parent = gethui() end end)
 		local sg = parent:FindFirstChild("VantixUI")
-			or game.Players.LocalPlayer.PlayerGui:FindFirstChild("VantixUI")
+			or LP.PlayerGui:FindFirstChild("VantixUI")
 		if sg then sg.Enabled = not sg.Enabled end
 	end,
 })
@@ -291,6 +320,7 @@ local function buildConfig(name)
 	cfg:RegisterElement("ESPElements",   espElements)
 	cfg:RegisterElement("ConfigName",    configName)
 	cfg:RegisterElement("UIKeybind",     uiKeybind)
+	cfg:RegisterElement("ZoomKey",       zoomKey)
 	return cfg
 end
 
@@ -298,7 +328,6 @@ local savedConfigs = SettingsTab:AddDropdown({
 	Title    = "Saved Configs",
 	Icon     = "folder",
 	Options  = Window.ConfigManager:GetConfigs(),
-	Tooltip  = "Populated from ConfigManager:GetConfigs()",
 })
 
 SettingsTab:AddButton({
@@ -308,7 +337,7 @@ SettingsTab:AddButton({
 	Callback = function()
 		buildConfig(configName:Get()):Save()
 		savedConfigs:SetOptions(Window.ConfigManager:GetConfigs())
-		Window:Notify({Title="Config", Text="Saved as "..configName:Get(), Duration=2})
+		Window:Notify({Title="Config", Text="Saved as " .. configName:Get(), Duration=2})
 	end,
 })
 
@@ -321,7 +350,7 @@ SettingsTab:AddButton({
 		if name and name ~= "" then
 			configName:Set(name)
 			buildConfig(name):Load()
-			Window:Notify({Title="Config", Text="Loaded "..name, Duration=2})
+			Window:Notify({Title="Config", Text="Loaded " .. name, Duration=2})
 		end
 	end,
 })
@@ -331,13 +360,13 @@ SettingsTab:AddButton({
 	Icon     = "trash-2",
 	Text     = "Delete",
 	Risky    = true,
-	Tooltip  = "Permanently deletes the config file",
+	Tooltip  = "Deletes the config file",
 	Callback = function()
 		local name = savedConfigs:Get()
 		if name and name ~= "" then
 			Window.ConfigManager:DeleteConfig(name)
 			savedConfigs:SetOptions(Window.ConfigManager:GetConfigs())
-			Window:Notify({Title="Config", Text="Deleted "..name, Duration=2})
+			Window:Notify({Title="Config", Text="Deleted " .. name, Duration=2})
 		end
 	end,
 })
@@ -370,13 +399,19 @@ SettingsTab:AddButton({
 	Icon     = "log-out",
 	Text     = "Unload",
 	Callback = function()
+		if zoomConn then zoomConn:Disconnect() end
 		Panel:Destroy()
 		QuickBar:Destroy()
 		Window:Destroy()
 	end,
 })
 
-Panel = VantixUI:CreateNewWindow({ Title = "Live Stats — White", Size = {240} })
+Panel = VantixUI:CreateNewWindow({
+	Title   = "Live Stats (White)",
+	Name    = "ShowcaseStats",
+	Size    = {240},
+	OnClose = function() console:Write("Stats panel closed") end,
+})
 Panel:AddHeader("Session")
 local fpsRow  = Panel:AddRow("FPS")
 local pingRow = Panel:AddRow("Ping")
@@ -393,7 +428,7 @@ Panel:AddRow("Character", {
 	Style         = "Vertical",
 	AccentKey     = "white",
 	ValueColorKey = "text",
-}):Set(game.Players.LocalPlayer.Name)
+}):Set(LP.Name)
 Panel:AddSeparator()
 Panel:AddHeader("Actions")
 Panel:AddToggle("Show Quick Bar", true, function(on)
@@ -413,11 +448,10 @@ QuickBar:AddSeparator()
 qPingRow = QuickBar:AddRow("Ping")
 QuickBar:AddSeparator()
 QuickBar:AddButton({ Text = "Log ping", Callback = function()
-	console:Write("Ping: "..lastPing)
+	console:Write("Ping: " .. lastPing)
 end })
 
 task.spawn(function()
-	local RunService = game:GetService("RunService")
 	local Stats = game:GetService("Stats")
 	local frames, last = 0, os.clock()
 	while Panel.Card and Panel.Card.Parent do
@@ -428,8 +462,7 @@ task.spawn(function()
 			qFpsRow:Set(frames)
 			frames, last = 0, now
 		end
-		local char = game.Players.LocalPlayer.Character
-		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local root = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			local p = root.Position
 			posRow:Set(string.format("%d, %d, %d", p.X, p.Y, p.Z))
