@@ -4,8 +4,19 @@ local RunService   = game:GetService("RunService")
 local UIS          = game:GetService("UserInputService")
 local CoreGui      = game:GetService("CoreGui")
 
+-- run too early (autoexec while joining, teleports) and the LocalPlayer / CurrentCamera do not exist yet,
+-- which crashed CreateWindow on player.DisplayName; wait for them instead
+if not game:IsLoaded() then game.Loaded:Wait() end
 local player = Players.LocalPlayer
+while not player do
+	Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+	player = Players.LocalPlayer
+end
 local camera = workspace.CurrentCamera
+while not camera do
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
+	camera = workspace.CurrentCamera
+end
 
 local lucide
 pcall(function()
@@ -3017,8 +3028,23 @@ function VantixUI:CreateWindow(config)
 			local r = makeRow(opts.Title or "Keybind", opts.Subtitle, opts.Icon, opts.Risky, opts.Tooltip, opts.Beta)
 			local changedEvent = Instance.new("BindableEvent")
 
+			-- a bind is an Enum.KeyCode, or Enum.UserInputType.MouseButton3 (middle click);
+			-- Roblox does not report the side buttons (Mouse4/5), so those cannot be bound
+			local function keyLabel(key)
+				if key == Enum.KeyCode.Unknown then return "None" end
+				if key == Enum.UserInputType.MouseButton3 then return "Mouse3" end
+				return key.Name
+			end
+			local function matches(inp)
+				if currentKey == Enum.KeyCode.Unknown then return false end
+				if currentKey == Enum.UserInputType.MouseButton3 then
+					return inp.UserInputType == Enum.UserInputType.MouseButton3
+				end
+				return inp.KeyCode == currentKey
+			end
+
 			local keyBtn = btn(r,{
-				text = currentKey == Enum.KeyCode.Unknown and "None" or currentKey.Name,
+				text = keyLabel(currentKey),
 				font=Enum.Font.BuilderSansMedium, size=13,
 				colorKey="bg", tcKey="sub",
 				sz=UDim2.new(0,90,0,28),
@@ -3038,7 +3064,7 @@ function VantixUI:CreateWindow(config)
 
 			bind(UIS.InputBegan, function(inp, gpe)
 				if not listening then
-					if currentKey ~= Enum.KeyCode.Unknown and inp.KeyCode == currentKey and not UIS:GetFocusedTextBox() and opts.Callback then
+					if matches(inp) and not UIS:GetFocusedTextBox() and opts.Callback then
 						if opts.Risky then
 							showRiskyConfirm(function() pcall(opts.Callback) end, nil, typeof(opts.Risky)=="string" and opts.Risky or nil)
 						elseif opts.Beta then
@@ -3049,14 +3075,16 @@ function VantixUI:CreateWindow(config)
 					end
 					return
 				end
-				if inp.KeyCode ~= Enum.KeyCode.Unknown then
+				local isMiddle = inp.UserInputType == Enum.UserInputType.MouseButton3
+				if inp.KeyCode ~= Enum.KeyCode.Unknown or isMiddle then
 					if inp.KeyCode == Enum.KeyCode.Escape then
 						currentKey = Enum.KeyCode.Unknown
-						keyBtn.Text = "None"
+					elseif isMiddle then
+						currentKey = Enum.UserInputType.MouseButton3
 					else
 						currentKey = inp.KeyCode
-						keyBtn.Text = currentKey.Name
 					end
+					keyBtn.Text = keyLabel(currentKey)
 					listening = false
 					keyBtn:SetAttribute("Hovered", false)
 					tw(keyBtn,{BackgroundColor3=K.bg},0.1):Play()
@@ -3067,7 +3095,7 @@ function VantixUI:CreateWindow(config)
 			return {
 				Set = function(_, key)
 					currentKey = key
-					keyBtn.Text = key == Enum.KeyCode.Unknown and "None" or key.Name
+					keyBtn.Text = keyLabel(key)
 					changedEvent:Fire(currentKey)
 				end,
 				Get = function() return currentKey end,
