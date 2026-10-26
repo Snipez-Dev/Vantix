@@ -227,6 +227,118 @@ local THEMES = {
 		logoMid  = Color3.fromRGB(100, 120, 210),
 		logoBot  = Color3.fromRGB(160, 175, 230),
 	},
+
+	Halloween = {
+		black    = Color3.fromRGB(10,  4,   0  ),
+		bg       = Color3.fromRGB(16,  10,  20 ),
+		surface  = Color3.fromRGB(24,  14,  30 ),
+		raised   = Color3.fromRGB(40,  22,  48 ),
+		border   = Color3.fromRGB(80,  40,  90 ),
+		borderHi = Color3.fromRGB(120, 60,  130),
+		muted    = Color3.fromRGB(150, 120, 160),
+		sub      = Color3.fromRGB(190, 160, 195),
+		text     = Color3.fromRGB(255, 240, 225),
+		white    = Color3.fromRGB(255, 130, 20 ),  -- pumpkin orange
+		logoTop  = Color3.fromRGB(255, 170, 40 ),
+		logoMid  = Color3.fromRGB(240, 100, 10 ),
+		logoBot  = Color3.fromRGB(110, 40,  130),
+	},
+
+	Valentine = {
+		black    = Color3.fromRGB(30,  0,   10 ),
+		bg       = Color3.fromRGB(30,  10,  18 ),
+		surface  = Color3.fromRGB(42,  14,  26 ),
+		raised   = Color3.fromRGB(66,  22,  40 ),
+		border   = Color3.fromRGB(130, 40,  75 ),
+		borderHi = Color3.fromRGB(180, 60,  105),
+		muted    = Color3.fromRGB(200, 140, 165),
+		sub      = Color3.fromRGB(235, 175, 200),
+		text     = Color3.fromRGB(255, 235, 242),
+		white    = Color3.fromRGB(255, 80,  140),  -- pink red
+		logoTop  = Color3.fromRGB(255, 150, 190),
+		logoMid  = Color3.fromRGB(240, 60,  120),
+		logoBot  = Color3.fromRGB(140, 20,  60 ),
+	},
+
+	Winter = {
+		black    = Color3.fromRGB(5,   15,  30 ),
+		bg       = Color3.fromRGB(14,  22,  34 ),
+		surface  = Color3.fromRGB(20,  30,  46 ),
+		raised   = Color3.fromRGB(32,  46,  66 ),
+		border   = Color3.fromRGB(70,  95,  125),
+		borderHi = Color3.fromRGB(110, 140, 175),
+		muted    = Color3.fromRGB(140, 165, 190),
+		sub      = Color3.fromRGB(185, 205, 225),
+		text     = Color3.fromRGB(240, 248, 255),
+		white    = Color3.fromRGB(190, 230, 255),  -- ice blue
+		logoTop  = Color3.fromRGB(255, 255, 255),
+		logoMid  = Color3.fromRGB(170, 215, 245),
+		logoBot  = Color3.fromRGB(80,  130, 185),
+	},
+
+	["New Year"] = {
+		black    = Color3.fromRGB(0,   0,   0  ),
+		bg       = Color3.fromRGB(12,  12,  14 ),
+		surface  = Color3.fromRGB(20,  20,  22 ),
+		raised   = Color3.fromRGB(34,  32,  28 ),
+		border   = Color3.fromRGB(80,  70,  45 ),
+		borderHi = Color3.fromRGB(130, 110, 60 ),
+		muted    = Color3.fromRGB(160, 150, 125),
+		sub      = Color3.fromRGB(200, 190, 165),
+		text     = Color3.fromRGB(255, 250, 235),
+		white    = Color3.fromRGB(240, 200, 90 ),  -- champagne gold
+		logoTop  = Color3.fromRGB(255, 235, 150),
+		logoMid  = Color3.fromRGB(225, 180, 70 ),
+		logoBot  = Color3.fromRGB(130, 95,  30 ),
+	},
+
+	["St Patrick"] = {
+		black    = Color3.fromRGB(0,   15,  5  ),
+		bg       = Color3.fromRGB(10,  24,  14 ),
+		surface  = Color3.fromRGB(14,  34,  20 ),
+		raised   = Color3.fromRGB(22,  54,  32 ),
+		border   = Color3.fromRGB(45,  105, 60 ),
+		borderHi = Color3.fromRGB(70,  150, 85 ),
+		muted    = Color3.fromRGB(130, 175, 135),
+		sub      = Color3.fromRGB(170, 215, 175),
+		text     = Color3.fromRGB(235, 255, 235),
+		white    = Color3.fromRGB(60,  220, 100),  -- clover green
+		logoTop  = Color3.fromRGB(255, 215, 80 ),
+		logoMid  = Color3.fromRGB(60,  200, 90 ),
+		logoBot  = Color3.fromRGB(15,  100, 40 ),
+	},
+
+	Summer = {
+		black    = Color3.fromRGB(0,   20,  30 ),
+		bg       = Color3.fromRGB(10,  26,  34 ),
+		surface  = Color3.fromRGB(14,  36,  46 ),
+		raised   = Color3.fromRGB(22,  56,  68 ),
+		border   = Color3.fromRGB(40,  110, 125),
+		borderHi = Color3.fromRGB(60,  155, 170),
+		muted    = Color3.fromRGB(130, 185, 190),
+		sub      = Color3.fromRGB(175, 220, 222),
+		text     = Color3.fromRGB(240, 255, 252),
+		white    = Color3.fromRGB(255, 200, 60 ),  -- sun yellow
+		logoTop  = Color3.fromRGB(255, 220, 90 ),
+		logoMid  = Color3.fromRGB(255, 140, 70 ),
+		logoBot  = Color3.fromRGB(20,  150, 170),
+	},
+
+	Autumn = {
+		black    = Color3.fromRGB(20,  8,   0  ),
+		bg       = Color3.fromRGB(26,  16,  10 ),
+		surface  = Color3.fromRGB(36,  22,  14 ),
+		raised   = Color3.fromRGB(58,  34,  20 ),
+		border   = Color3.fromRGB(110, 65,  35 ),
+		borderHi = Color3.fromRGB(155, 95,  50 ),
+		muted    = Color3.fromRGB(180, 145, 115),
+		sub      = Color3.fromRGB(215, 180, 145),
+		text     = Color3.fromRGB(255, 242, 225),
+		white    = Color3.fromRGB(225, 110, 40 ),  -- maple orange
+		logoTop  = Color3.fromRGB(240, 180, 60 ),
+		logoMid  = Color3.fromRGB(210, 90,  30 ),
+		logoBot  = Color3.fromRGB(120, 40,  20 ),
+	},
 }
 
 local activeThemeName = "Vantix"
@@ -236,8 +348,22 @@ for k, v in pairs(THEMES.Vantix) do
 end
 
 local themeUpdaters = {}
+local updatersSincePrune = 0
+-- notifications and dropdown rebuilds add updaters all the time, drop the dead ones now and then
+local function pruneThemeUpdaters()
+	local alive = {}
+	for _, item in ipairs(themeUpdaters) do
+		if not item.target or item.target.Parent then alive[#alive + 1] = item end
+	end
+	themeUpdaters = alive
+end
 local function registerThemeUpdater(callback, targetInstance)
 	table.insert(themeUpdaters, {cb = callback, target = targetInstance})
+	updatersSincePrune = updatersSincePrune + 1
+	if updatersSincePrune >= 300 then
+		updatersSincePrune = 0
+		pruneThemeUpdaters()
+	end
 	pcall(callback)
 end
 
@@ -563,8 +689,11 @@ local function makeSlider(parent, minV, maxV, defaultV)
 	})
 	rnd(knobF,99)
 
-	local function setValue(v, silent)
-		val = math.clamp(v, minV, maxV)
+	local function setValue(v, silent, fromDrag)
+		local nv = math.clamp(v, minV, maxV)
+		-- dragging fires on every mouse move, skip when the value did not change
+		if fromDrag and nv == val then return end
+		val = nv
 		local pct = (val-minV)/(maxV-minV)
 		fill.Size = UDim2.new(pct,0,1,0)
 		knobF.Position = UDim2.new(pct, 0, 0.5, 0)
@@ -574,6 +703,7 @@ local function makeSlider(parent, minV, maxV, defaultV)
 	end
 
 	local dragging = false
+	local dragConns = {}
 	local ib = inst("TextButton",{
 		BackgroundTransparency=1, Text="",
 		Size=UDim2.fromScale(1,1), ZIndex=8, AutoButtonColor=false,
@@ -584,31 +714,40 @@ local function makeSlider(parent, minV, maxV, defaultV)
 		local abs = track.AbsolutePosition.X
 		local sz  = track.AbsoluteSize.X
 		local pct = math.clamp((input.Position.X - abs) / sz, 0, 1)
-		setValue(minV + pct*(maxV-minV))
+		setValue(minV + pct*(maxV-minV), false, true)
 	end
 
 	local function knobScale(s) tw(knobF,{Size=UDim2.new(0,s,0,s)},0.12):Play() end
 	ib.MouseEnter:Connect(function() if not dragging then knobScale(KNOB_S+3) end end)
 	ib.MouseLeave:Connect(function() if not dragging then knobScale(KNOB_S) end end)
 
+	local function stopDrag()
+		dragging = false
+		for _, c in ipairs(dragConns) do c:Disconnect() end
+		table.clear(dragConns)
+	end
+
+	-- only listen to global input while dragging
 	ib.InputBegan:Connect(function(inp)
 		if inp.UserInputType==Enum.UserInputType.MouseButton1
 		or inp.UserInputType==Enum.UserInputType.Touch then
+			stopDrag()
 			dragging=true; knobScale(KNOB_S+5); onInput(inp)
+			dragConns[1] = UIS.InputChanged:Connect(function(i)
+				if i.UserInputType==Enum.UserInputType.MouseMovement
+				or i.UserInputType==Enum.UserInputType.Touch then
+					onInput(i)
+				end
+			end)
+			dragConns[2] = UIS.InputEnded:Connect(function(i)
+				if i.UserInputType==Enum.UserInputType.MouseButton1
+				or i.UserInputType==Enum.UserInputType.Touch then
+					stopDrag(); knobScale(KNOB_S)
+				end
+			end)
 		end
 	end)
-	UIS.InputChanged:Connect(function(inp)
-		if inp.UserInputType==Enum.UserInputType.MouseMovement
-		or inp.UserInputType==Enum.UserInputType.Touch then
-			onInput(inp)
-		end
-	end)
-	UIS.InputEnded:Connect(function(inp)
-		if inp.UserInputType==Enum.UserInputType.MouseButton1
-		or inp.UserInputType==Enum.UserInputType.Touch then
-			dragging=false; knobScale(KNOB_S)
-		end
-	end)
+	wrap.Destroying:Connect(stopDrag)
 
 	task.defer(function() setValue(defaultV or minV, true) end)
 
@@ -731,6 +870,8 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 		t:Play()
 	end
 
+	-- option buttons are only built while the list is open, player lists change on every join/leave
+	local dirty = true
 	local function populateOptions()
 		for _, c in ipairs(listFrame:GetChildren()) do
 			if c:IsA("TextButton") then c:Destroy() end
@@ -768,17 +909,20 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 				header.Text = opt
 				closeList()
 				changedEvent:Fire(selected)
-				populateOptions()
+				dirty = true
 			end)
 		end
 	end
 	
-	populateOptions()
+	local function refreshList()
+		if open then populateOptions(); dirty = false else dirty = true end
+	end
 
 	header.MouseButton1Click:Connect(function()
 		if not open and onOpenStart then pcall(onOpenStart) end
 		open = not open
 		if open then
+			if dirty then populateOptions(); dirty = false end
 			parent.ZIndex = 110
 			if parent.Parent and parent.Parent:IsA("GuiObject") then parent.Parent.ZIndex = 110 end
 			listFrame.Visible = true
@@ -804,7 +948,7 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 				selected = opt
 			end
 			header.Text = selected
-			populateOptions()
+			refreshList()
 			changedEvent:Fire(selected)
 		end,
 		setOptions = function(newOpts)
@@ -823,7 +967,7 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 			end
 			LIST_W = calcWidth(options)
 			wrap.Size = UDim2.new(0, LIST_W, 0, DROP_H)
-			populateOptions()
+			refreshList()
 			if open then
 				local targetH = math.min(210, #options * 30)
 				tw(listFrame,{Size=UDim2.new(0,LIST_W,0,targetH)},0.18):Play()
@@ -964,6 +1108,8 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 		t:Play()
 	end
 
+	-- option buttons are only built while the list is open, player lists change on every join/leave
+	local dirty = true
 	local function populateOptions()
 		for _, c in ipairs(listFrame:GetChildren()) do
 			if c:IsA("TextButton") then c:Destroy() end
@@ -1006,12 +1152,15 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 		end
 	end
 	
-	populateOptions()
+	local function refreshList()
+		if open then populateOptions(); dirty = false else dirty = true end
+	end
 
 	header.MouseButton1Click:Connect(function()
 		if not open and onOpenStart then pcall(onOpenStart) end
 		open = not open
 		if open then
+			if dirty then populateOptions(); dirty = false end
 			parent.ZIndex = 110
 			if parent.Parent and parent.Parent:IsA("GuiObject") then parent.Parent.ZIndex = 110 end
 			listFrame.Visible = true
@@ -1044,7 +1193,7 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 				selected[newSelected] = true
 			end
 			header.Text = getHeaderText()
-			populateOptions()
+			refreshList()
 			changedEvent:Fire(selected)
 		end,
 		setOptions = function(newOpts)
@@ -1063,7 +1212,7 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 			header.Text = getHeaderText()
 			LIST_W = calcWidth(options)
 			wrap.Size = UDim2.new(0, LIST_W, 0, DROP_H)
-			populateOptions()
+			refreshList()
 			if open then
 				local targetH = math.min(210, #options * 30)
 				tw(listFrame,{Size=UDim2.new(0,LIST_W,0,targetH)},0.18):Play()
@@ -1247,24 +1396,35 @@ local function makeColorPicker(parent, defaultColor, onOpenStart)
 		updateColor()
 	end
 	
-	svMap.InputBegan:Connect(function(inp) 
-		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then dragSV = true; updateSV(inp) end 
+	-- only listen to global input while dragging
+	local dragConns = {}
+	local function stopDrag()
+		dragSV = false; dragH = false
+		for _, c in ipairs(dragConns) do c:Disconnect() end
+		table.clear(dragConns)
+	end
+	local function startDrag()
+		if #dragConns > 0 then return end
+		dragConns[1] = UIS.InputChanged:Connect(function(inp)
+			if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+				if dragSV then updateSV(inp) end
+				if dragH then updateH(inp) end
+			end
+		end)
+		dragConns[2] = UIS.InputEnded:Connect(function(inp)
+			if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+				stopDrag()
+			end
+		end)
+	end
+
+	svMap.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then dragSV = true; updateSV(inp); startDrag() end
 	end)
-	hueTrack.InputBegan:Connect(function(inp) 
-		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then dragH = true; updateH(inp) end 
+	hueTrack.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then dragH = true; updateH(inp); startDrag() end
 	end)
-	
-	UIS.InputChanged:Connect(function(inp)
-		if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
-			if dragSV then updateSV(inp) end
-			if dragH then updateH(inp) end
-		end
-	end)
-	UIS.InputEnded:Connect(function(inp)
-		if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-			dragSV = false; dragH = false
-		end
-	end)
+	wrap.Destroying:Connect(stopDrag)
 	
 	local function closeCP()
 		open = false
@@ -1932,7 +2092,7 @@ function VantixUI:CreateWindow(config)
 	body = frame(win,{
 		name="Body", colorKey="bg", trans=1,
 		size=UDim2.new(1,0,1,-38), pos=UDim2.new(0,0,0,38),
-		z=4, clip=true, class="CanvasGroup",
+		z=4, clip=true,
 	})
 	rnd(body, 10)
 	body.Visible=false
