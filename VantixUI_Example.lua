@@ -298,10 +298,8 @@ local uiKeybind = SettingsTab:AddKeybind({
 	Icon     = "keyboard",
 	Default  = Enum.KeyCode.Insert,
 	Callback = function()
-		local parent = game:GetService("CoreGui")
-		pcall(function() if typeof(gethui) == "function" then parent = gethui() end end)
-		local sg = parent:FindFirstChild("VantixUI")
-			or LP.PlayerGui:FindFirstChild("VantixUI")
+		-- the gui name is random, use the reference
+		local sg = Window.Gui
 		if sg then sg.Enabled = not sg.Enabled end
 	end,
 })

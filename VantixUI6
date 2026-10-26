@@ -426,6 +426,16 @@ local function setAccentColor(color)
 	refreshThemeUpdaters()
 end
 
+-- random letters for ScreenGui names, so there is no fixed name to look for
+local function randomName()
+	local chars = {}
+	for i = 1, math.random(10, 16) do
+		local r = math.random(1, 52)
+		chars[i] = string.char(r <= 26 and 64 + r or 70 + r)
+	end
+	return table.concat(chars)
+end
+
 local function inst(cls, props, parent)
 	local o = Instance.new(cls)
 	for k,v in pairs(props or {}) do o[k]=v end
@@ -1572,16 +1582,20 @@ function VantixUI:CreateWindow(config)
 		end
 	end)
 
-	local existing = guiParent:FindFirstChild("VantixUI") or CoreGui:FindFirstChild("VantixUI")
+	-- the window has a random name, the old one is found through getgenv (or the old fixed name)
+	local existing = getgenv().VantixUIGui
+	if typeof(existing) ~= "Instance" or not existing.Parent then existing = nil end
+	existing = existing or guiParent:FindFirstChild("VantixUI") or CoreGui:FindFirstChild("VantixUI")
 	if existing then existing:Destroy() end
 	closeVantixPanels()
 
 
 	local sg = inst("ScreenGui",{
-		Name="VantixUI", ResetOnSpawn=false,
+		Name=randomName(), ResetOnSpawn=false,
 		IgnoreGuiInset=true, ZIndexBehavior=Enum.ZIndexBehavior.Sibling,
 		DisplayOrder=999,
 	}, guiParent)
+	getgenv().VantixUIGui = sg
 
 	local liveConns = {}
 	local function bind(signal, fn)
@@ -2285,7 +2299,7 @@ function VantixUI:CreateWindow(config)
 		end)
 	end
 
-	local Window = {}
+	local Window = { Gui = sg }
 	local tabCount = 0
 	local tagCount = 0
 
@@ -3747,7 +3761,7 @@ function VantixUI:CreateNewWindow(config)
 	end)
 
 	local sg = inst("ScreenGui", {
-		Name = config.Name or "VantixPanel", ResetOnSpawn = false,
+		Name = randomName(), ResetOnSpawn = false,
 		IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		DisplayOrder = 998,
 	}, parent)
