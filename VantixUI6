@@ -228,6 +228,22 @@ local THEMES = {
 		logoBot  = Color3.fromRGB(160, 175, 230),
 	},
 
+	MattVantix = {
+		black    = Color3.fromRGB(0,   0,   0  ),
+		bg       = Color3.fromRGB(10,  10,  10 ),
+		surface  = Color3.fromRGB(14,  14,  14 ),
+		raised   = Color3.fromRGB(20,  20,  20 ),
+		border   = Color3.fromRGB(32,  32,  32 ),
+		borderHi = Color3.fromRGB(42,  42,  42 ),
+		muted    = Color3.fromRGB(115, 115, 115),
+		sub      = Color3.fromRGB(145, 145, 145),
+		text     = Color3.fromRGB(205, 205, 205),
+		white    = Color3.fromRGB(175, 175, 175),  -- soft grey, no shine
+		logoTop  = Color3.fromRGB(150, 150, 150),
+		logoMid  = Color3.fromRGB(110, 110, 110),
+		logoBot  = Color3.fromRGB(70,  70,  70 ),
+	},
+
 	Halloween = {
 		black    = Color3.fromRGB(10,  4,   0  ),
 		bg       = Color3.fromRGB(16,  10,  20 ),
