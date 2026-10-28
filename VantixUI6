@@ -2651,6 +2651,85 @@ function VantixUI:CreateWindow(config)
 		tw(cardScale,{Scale=1},0.2,Enum.EasingStyle.Back):Play()
 	end
 
+	-- why a locked feature cannot be used (missing executor function and so on); just an OK button
+	local function showLockedNotice(reason)
+		local backdrop = inst("TextButton", {
+			Name="LockedBackdrop", BackgroundColor3=Color3.new(0,0,0),
+			BackgroundTransparency=1, Text="", AutoButtonColor=false,
+			Size=UDim2.fromScale(1,1), ZIndex=500,
+		}, sg)
+
+		local card = inst("CanvasGroup", {
+			Name="LockedCard", BackgroundColor3=K.bg, GroupTransparency=1,
+			Size=UDim2.new(0,320,0,0), AutomaticSize=Enum.AutomaticSize.Y,
+			Position=UDim2.fromScale(0.5,0.5), AnchorPoint=Vector2.new(0.5,0.5),
+			ZIndex=501,
+		}, backdrop)
+		rnd(card,12)
+		brd(card,"borderHi",1)
+		local cardScale = inst("UIScale", {Scale=0.9}, card)
+		pad(card,18,18,18,18)
+		inst("UIListLayout",{
+			FillDirection=Enum.FillDirection.Vertical,
+			SortOrder=Enum.SortOrder.LayoutOrder,
+			Padding=UDim.new(0,14),
+		}, card)
+
+		local iconLoaded = lucide and getLucide("lock", 22) ~= ""
+		local header = inst("Frame",{
+			Name="Header", BackgroundTransparency=1,
+			Size=UDim2.new(1,0,0, iconLoaded and 40 or 20), LayoutOrder=1, ZIndex=502,
+		}, card)
+		if iconLoaded then
+			local iconBox = inst("Frame",{
+				Name="IconBox", BackgroundColor3=K.sub, BackgroundTransparency=0.85,
+				Size=UDim2.new(0,40,0,40), ZIndex=503,
+			}, header)
+			rnd(iconBox,10)
+			img(iconBox,{
+				name="Ic", img=getLucide("lock", 22),
+				colorKey="sub", sz=UDim2.new(0,22,0,22),
+				pos=UDim2.new(0.5,0,0.5,0), anchor=Vector2.new(0.5,0.5), z=504,
+			})
+		end
+		lbl(header,{
+			text="Locked", font=Enum.Font.BuilderSansBold, size=16, colorKey="text",
+			sz=UDim2.new(1,iconLoaded and -52 or 0,0,20),
+			pos=UDim2.new(0,iconLoaded and 52 or 0,0.5,0), anchor=Vector2.new(0,0.5), z=503,
+		})
+
+		local body = lbl(card,{
+			text=reason, font=Enum.Font.BuilderSans, size=13, colorKey="sub", wrap=true,
+			sz=UDim2.new(1,0,0,0), pos=UDim2.new(0,0,0,0), z=502, ya=Enum.TextYAlignment.Top,
+		})
+		body.LayoutOrder = 2
+		body.AutomaticSize = Enum.AutomaticSize.Y
+
+		local okBtn = btn(card,{
+			name="Ok", text="OK", font=Enum.Font.BuilderSansBold, size=13,
+			colorKey="white", tcKey="black",
+			sz=UDim2.new(1,0,0,36), pos=UDim2.new(0,0,0,0), z=503,
+		})
+		okBtn.LayoutOrder = 3
+		rnd(okBtn,7)
+
+		local function close()
+			tw(backdrop,{BackgroundTransparency=1},0.12):Play()
+			tw(card,{GroupTransparency=1},0.12):Play()
+			local st = tw(cardScale,{Scale=0.92},0.12)
+			st.Completed:Connect(function() backdrop:Destroy() end)
+			st:Play()
+		end
+		okBtn.MouseButton1Click:Connect(close)
+		backdrop.MouseButton1Click:Connect(close)
+
+		tw(backdrop,{BackgroundTransparency=0.45},0.16):Play()
+		tw(card,{GroupTransparency=0},0.16,Enum.EasingStyle.Quint):Play()
+		tw(cardScale,{Scale=1},0.2,Enum.EasingStyle.Back):Play()
+	end
+
+	local DEFAULT_LOCK_REASON = "Your executor is lacking functions to support this feature."
+
 	function Window:AddTab(tabName, iconName)
 		tabCount = tabCount + 1
 		local tabKey = tabName
@@ -2834,6 +2913,54 @@ function VantixUI:CreateWindow(config)
 			ctrl:GetPropertyChangedSignal("Size"):Connect(apply)
 		end
 
+		-- greys out a row and puts a "Locked" pill left of its control; returns a function(on) to switch it
+		local function makeLockBadge(r, ctrl)
+			local pill = frame(r,{
+				name="Locked", colorKey="raised", trans=0,
+				size=UDim2.new(0,0,0,22), pos=UDim2.new(1,0,0.5,0), anchor=Vector2.new(1,0.5), z=9,
+			})
+			pill.AutomaticSize = Enum.AutomaticSize.X
+			pill.Visible = false
+			rnd(pill,99)
+			pad(pill,8,8,0,0)
+			inst("UIListLayout",{
+				FillDirection=Enum.FillDirection.Horizontal, SortOrder=Enum.SortOrder.LayoutOrder,
+				VerticalAlignment=Enum.VerticalAlignment.Center, Padding=UDim.new(0,4),
+			}, pill)
+			if lucide and getLucide("lock", 12) ~= "" then
+				img(pill,{
+					name="Ic", img=getLucide("lock", 12), colorKey="muted",
+					sz=UDim2.new(0,12,0,12), z=10,
+				}).LayoutOrder = 1
+			end
+			local t = lbl(pill,{
+				text="Locked", font=Enum.Font.BuilderSansMedium, size=11, colorKey="muted",
+				sz=UDim2.new(0,0,1,0), z=10,
+			})
+			t.AutomaticSize = Enum.AutomaticSize.X
+			t.LayoutOrder = 2
+
+			return function(on)
+				pill.Visible = on
+				pill.Position = UDim2.new(1, -(ROW_PAD + ctrl.Size.X.Offset + 8), 0.5, 0)
+				local fade = on and 0.55 or 0
+				for _, n in ipairs({"Title", "Sub"}) do
+					local l = r:FindFirstChild(n)
+					if l then l.TextTransparency = fade end
+				end
+				local icon = r:FindFirstChild("Icon")
+				if icon then icon.ImageTransparency = fade end
+				if ctrl:IsA("GuiObject") then ctrl.BackgroundTransparency = on and 0.5 or 0 end
+				-- keep the title clear of the pill
+				local textX = r:GetAttribute("TextX") or ROW_PAD
+				local extra = on and ((pill.AbsoluteSize.X > 0 and pill.AbsoluteSize.X or 64) + 8) or 0
+				for _, n in ipairs({"Title", "Sub"}) do
+					local l = r:FindFirstChild(n)
+					if l then l.Size = UDim2.new(1, -(textX + ctrl.Size.X.Offset + ROW_PAD + 10 + extra), 0, l.Size.Y.Offset) end
+				end
+			end
+		end
+
 		local function makeSliderRow(title, iconName, risky, tooltipText, beta)
 			local group, isFirst, orderInGroup = getGroup()
 			local accentColor = risky and RISKY or beta and BETA or nil
@@ -2878,14 +3005,21 @@ function VantixUI:CreateWindow(config)
 		function Tab:AddToggle(opts)
 			opts = opts or {}
 			local r = makeRow(opts.Title or "Toggle", opts.Subtitle, opts.Icon, opts.Risky, opts.Tooltip, opts.Beta)
-			local guard = opts.Risky and function(proceed) showRiskyConfirm(proceed, nil, typeof(opts.Risky)=="string" and opts.Risky or nil) end
+			-- Locked = "reason" (or true): the toggle stays off and turning it on shows the reason instead
+			local lockReason = opts.Locked and (typeof(opts.Locked)=="string" and opts.Locked or DEFAULT_LOCK_REASON) or nil
+			local flagGuard = opts.Risky and function(proceed) showRiskyConfirm(proceed, nil, typeof(opts.Risky)=="string" and opts.Risky or nil) end
 				or opts.Beta and function(proceed) showBetaConfirm(proceed, nil, typeof(opts.Beta)=="string" and opts.Beta or nil) end
 				or nil
-			local tog = makeToggle(r, opts.Default or false, guard)
+			local function guard(proceed)
+				if lockReason then showLockedNotice(lockReason) return end
+				if flagGuard then flagGuard(proceed) else proceed() end
+			end
+			local tog = makeToggle(r, (not lockReason) and opts.Default or false, guard)
 			tog.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
 			tog.frame.AnchorPoint = Vector2.new(1,0.5)
 			tog.frame.ZIndex = 9
 			fitRow(r, tog.frame)
+			local showLock = makeLockBadge(r, tog.frame)
 
 			if opts.Callback then
 				tog.changed:Connect(opts.Callback)
@@ -2893,6 +3027,8 @@ function VantixUI:CreateWindow(config)
 
 			local toggleObj = {
 				Set = function(_, state)
+					-- a locked toggle never turns on, not even from a loaded config
+					if state and lockReason then return end
 					tog.set(state, true)
 					if opts.Callback then
 						pcall(opts.Callback, state)
@@ -2902,7 +3038,23 @@ function VantixUI:CreateWindow(config)
 					return tog.getState()
 				end,
 				Changed = tog.changed,
+				Lock = function(_, reason)
+					lockReason = typeof(reason)=="string" and reason or DEFAULT_LOCK_REASON
+					if tog.getState() then
+						tog.set(false, true)
+						if opts.Callback then pcall(opts.Callback, false) end
+					end
+					showLock(true)
+				end,
+				Unlock = function()
+					lockReason = nil
+					showLock(false)
+				end,
+				IsLocked = function()
+					return lockReason ~= nil
+				end,
 			}
+			if lockReason then showLock(true) end
 			table.insert(allToggles, toggleObj)
 			return toggleObj
 		end
@@ -2974,8 +3126,13 @@ function VantixUI:CreateWindow(config)
 					tw(ab,{BackgroundColor3=K.bg,TextColor3=K.white},0.12):Play()
 				end)
 			end
+			local lockReason = opts.Locked and (typeof(opts.Locked)=="string" and opts.Locked or DEFAULT_LOCK_REASON) or nil
+			local showLock = makeLockBadge(r, ab)
+			if lockReason then showLock(true) end
 			ab.MouseButton1Click:Connect(function()
-				if opts.Risky then
+				if lockReason then
+					showLockedNotice(lockReason)
+				elseif opts.Risky then
 					showRiskyConfirm(fireButton, nil, typeof(opts.Risky)=="string" and opts.Risky or nil)
 				elseif opts.Beta then
 					showBetaConfirm(fireButton, nil, typeof(opts.Beta)=="string" and opts.Beta or nil)
