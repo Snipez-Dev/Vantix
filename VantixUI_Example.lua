@@ -151,6 +151,62 @@ status = MainTab:AddLabel("Status: idle", "activity")
 console = MainTab:AddConsole({ Title = "Activity Log", Height = 110 })
 console:Write("Showcase loaded")
 
+local LocksTab = Window:AddTab("Locked Controls", "lock")
+local lockState = LocksTab:AddLabel("Demo toggle: locked / off", "lock")
+local lockedToggle
+local function updateLockState()
+	lockState:Set("Demo toggle: " .. (lockedToggle:IsLocked() and "locked" or "unlocked")
+		.. " / " .. (lockedToggle:Get() and "on" or "off"))
+end
+
+-- Locked accepts true for the default message, or a string for a custom reason.
+-- A locked toggle stays off even when Default is true or Set(true) is called.
+lockedToggle = LocksTab:AddToggle({
+	Title = "Locked Toggle",
+	Subtitle = "Click to see the reason, or unlock it with the button below",
+	Icon = "lock",
+	Default = true,
+	Locked = "This toggle is locked for the showcase. Click Unlock Demo Toggle to enable it.",
+	Callback = function(state)
+		Flags.LockedDemo = state
+		console:Write("Demo toggle " .. (state and "enabled" or "disabled"))
+		updateLockState()
+	end,
+})
+
+LocksTab:AddButton({
+	Title = "Locked Button",
+	Subtitle = "Locked = true shows the default reason and blocks the callback",
+	Icon = "lock",
+	Text = "Try It",
+	Locked = true,
+	Callback = function()
+		console:Write("This callback cannot run while the button is locked")
+	end,
+})
+
+LocksTab:AddSeparator()
+LocksTab:AddButton({
+	Title = "Unlock Demo Toggle",
+	Subtitle = "Unlock() makes the toggle available without turning it on",
+	Icon = "lock-open",
+	Text = "Unlock",
+	Callback = function()
+		lockedToggle:Unlock()
+		updateLockState()
+	end,
+})
+LocksTab:AddButton({
+	Title = "Lock Demo Toggle",
+	Subtitle = "Lock(reason) switches it off and restores the locked state",
+	Icon = "lock",
+	Text = "Lock",
+	Callback = function()
+		lockedToggle:Lock("The demo toggle was locked again. Use Unlock Demo Toggle to enable it.")
+		updateLockState()
+	end,
+})
+
 local VisualsTab = Window:AddTab("Visuals", "eye")
 
 local espColor = VisualsTab:AddColorPicker({
