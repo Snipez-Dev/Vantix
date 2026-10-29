@@ -1,6 +1,6 @@
 getgenv().VantixExampleBeta = true
 
-local url = "https://raw.githubusercontent.com/Snipez-Dev/Vantix/refs/heads/main/VantixUI6_Beta"
+local url = "https://raw.githubusercontent.com/Snipez-Dev/Vantix/refs/heads/main/Beta/VantixUI6_Beta"
 
 local VantixUI = loadstring(game:HttpGet(url))()
 
@@ -173,4 +173,35 @@ SettingsTab:AddButton({
 		MyConfig:Load()
 		Window:Notify({Title="Config", Text="Loaded!"})
 	end
+})
+
+SettingsTab:AddSeparator()
+SettingsTab:AddLabel("Side Panels", "panel-top")
+
+local SidePanel = VantixUI:CreateNewWindow({
+	Title = "Minimizable Panel",
+	Size = {280},
+	Minimizable = true, -- adds a minus button; click plus to restore the body
+})
+SidePanel:AddRow("Header controls"):Set("Minimize and close")
+SidePanel:AddRow("While minimized"):Set("Controls keep their values")
+
+-- With no Minimizable option, the header contains only the close button.
+local DefaultPanel = VantixUI:CreateNewWindow({
+	Title = "Close-only Panel",
+	Size = {260},
+	Position = UDim2.new(0, 20, 0, 88),
+})
+DefaultPanel:AddRow("Minimizable"):Set("Not enabled")
+
+SettingsTab:AddButton({
+	Title = "Minimize Side Panel", Icon = "minus", Text = "Minimize",
+	Callback = function() SidePanel:Minimize() end,
+})
+SettingsTab:AddButton({
+	Title = "Restore Side Panels", Icon = "panel-top", Text = "Restore",
+	Callback = function()
+		SidePanel:Restore()
+		DefaultPanel:SetVisible(true)
+	end,
 })

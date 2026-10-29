@@ -3905,6 +3905,7 @@ function VantixUI:CreateNewWindow(config)
 	config = config or {}
 	local width = (config.Size and config.Size[1]) or 300
 	local title = config.Title or "Panel"
+	local minimizable = config.Minimizable == true
 	local panelLayout = config.Layout == "Horizontal" and "Horizontal" or "Vertical"
 
 	-- gethui -> cloneref(CoreGui) -> CoreGui
@@ -3972,7 +3973,7 @@ function VantixUI:CreateNewWindow(config)
 	})
 	local titleLbl = lbl(header, {
 		text = title, font = Enum.Font.BuilderSansBold, size = 14,
-		sz = UDim2.new(1, -54, 1, 0), pos = UDim2.new(0, 14, 0, 0),
+		sz = UDim2.new(1, minimizable and -86 or -54, 1, 0), pos = UDim2.new(0, 14, 0, 0),
 	})
 
 	header.MouseEnter:Connect(function() tw(header, { BackgroundColor3 = K.border }, 0.12):Play() end)
@@ -4024,6 +4025,7 @@ function VantixUI:CreateNewWindow(config)
 	if panelLayout == "Horizontal" then
 		-- copy the body width onto the card (AutomaticSize + Scale looped)
 		local function syncWidth()
+			if not body.Visible then return end
 			card.Size = UDim2.new(0, body.AbsoluteSize.X, 0, 0)
 		end
 		body:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncWidth)
@@ -4055,6 +4057,55 @@ function VantixUI:CreateNewWindow(config)
 
 	local Panel = { Gui = sg, Card = card }
 	local order = 1
+
+	local minimized = false
+	local minimizeButton, minimizeIcon, minimizeText
+	local expandedSize, expandedAutomaticSize
+	local function setMinimized(on)
+		if not minimizable or not sg.Parent then return end
+		on = on == true
+		if minimized == on then return end
+		minimized = on
+		body.Visible = not on
+		if on then
+			expandedSize, expandedAutomaticSize = panel.Size, panel.AutomaticSize
+			panel.AutomaticSize = Enum.AutomaticSize.None
+			panel.Size = UDim2.new(1, 0, 0, header.Size.Y.Offset)
+		else
+			panel.Size = expandedSize
+			panel.AutomaticSize = expandedAutomaticSize
+		end
+		if minimizeIcon then minimizeIcon.Image = getLucide(on and "plus" or "minus", 16) end
+		if minimizeText then minimizeText.Text = on and "+" or "-" end
+	end
+	if minimizable then
+		minimizeButton = btn(header, {
+			name = "Minimize", colorKey = "raised", trans = 1,
+			sz = UDim2.new(0, 28, 0, 28), pos = UDim2.new(1, -40, 0.5, 0),
+			anchor = Vector2.new(1, 0.5), z = 5,
+		})
+		rnd(minimizeButton, 6)
+		minimizeIcon = img(minimizeButton, {
+			name = "Icon", img = getLucide("minus", 16), colorKey = "sub",
+			sz = UDim2.new(0, 16, 0, 16), pos = UDim2.new(0.5, 0, 0.5, 0),
+			anchor = Vector2.new(0.5, 0.5), z = 6,
+		})
+		if not lucide then
+			minimizeIcon.Visible = false
+			minimizeText = lbl(minimizeButton, {
+				text = "-", font = titleLbl.Font, size = 16, colorKey = "sub",
+				sz = UDim2.fromScale(1, 1), xa = Enum.TextXAlignment.Center,
+				ya = Enum.TextYAlignment.Center, z = 6,
+			})
+		end
+		minimizeButton.MouseEnter:Connect(function()
+			tw(minimizeButton, { BackgroundTransparency = 0 }, 0.1):Play()
+		end)
+		minimizeButton.MouseLeave:Connect(function()
+			tw(minimizeButton, { BackgroundTransparency = 1 }, 0.1):Play()
+		end)
+		minimizeButton.MouseButton1Click:Connect(function() setMinimized(not minimized) end)
+	end
 
 	closeBtn.MouseButton1Click:Connect(function()
 		sg.Enabled = false
@@ -4337,6 +4388,14 @@ function VantixUI:CreateNewWindow(config)
 		row.MouseButton1Click:Connect(function() handle:Set(not state) end)
 		return handle
 	end
+
+	function Panel:Minimize() setMinimized(true) end
+	function Panel:Restore()
+		sg.Enabled = true
+		setMinimized(false)
+	end
+	function Panel:ToggleMinimize() setMinimized(not minimized) end
+	function Panel:IsMinimized() return minimized end
 
 	function Panel:SetTitle(text) titleLbl.Text = tostring(text) end
 	function Panel:SetVisible(on) sg.Enabled = on ~= false end

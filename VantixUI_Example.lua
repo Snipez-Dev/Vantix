@@ -393,6 +393,14 @@ SettingsTab:AddButton({
 })
 
 SettingsTab:AddButton({
+	Title    = "Restore Stats Panel",
+	Subtitle = "Show the stats panel and expand its body",
+	Icon     = "panel-top",
+	Text     = "Restore",
+	Callback = function() Panel:Restore() end,
+})
+
+SettingsTab:AddButton({
 	Title    = "Unload",
 	Icon     = "log-out",
 	Text     = "Unload",
@@ -408,12 +416,13 @@ Panel = VantixUI:CreateNewWindow({
 	Title   = "Live Stats (White)",
 	Name    = "ShowcaseStats",
 	Size    = {240},
+	Minimizable = true, -- opt in to the minus / plus button in the title bar
 	OnClose = function() console:Write("Stats panel closed") end,
 })
 Panel:AddHeader("Session")
 local fpsRow  = Panel:AddRow("FPS")
 local pingRow = Panel:AddRow("Ping")
-minRow = Panel:AddRow("Minimized")
+minRow = Panel:AddRow("Main Window Minimized")
 keyRow = Panel:AddRow("Toggle Key")
 Panel:AddSeparator()
 Panel:AddHeader("Window")
@@ -435,7 +444,11 @@ end)
 Panel:AddButton("Clear activity log", function()
 	console:Clear()
 end)
+Panel:AddButton("Minimize this panel", function()
+	Panel:Minimize()
+end)
 
+-- Omit Minimizable (or set it to false) for the original close-only header.
 QuickBar = VantixUI:CreateNewWindow({
 	Title    = "Quick Bar",
 	Layout   = "Horizontal",
