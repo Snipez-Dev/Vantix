@@ -373,14 +373,14 @@ local function pruneThemeUpdaters()
 	end
 	themeUpdaters = alive
 end
-local function registerThemeUpdater(callback, targetInstance)
+local function registerThemeUpdater(callback, targetInstance, skipInitial)
 	table.insert(themeUpdaters, {cb = callback, target = targetInstance})
 	updatersSincePrune = updatersSincePrune + 1
 	if updatersSincePrune >= 300 then
 		updatersSincePrune = 0
 		pruneThemeUpdaters()
 	end
-	pcall(callback)
+	if not skipInitial then pcall(callback) end
 end
 
 local function refreshThemeUpdaters()
@@ -400,6 +400,17 @@ local function refreshThemeUpdaters()
 	themeUpdaters = activeUpdaters
 end
 
+-- several theme/accent changes in one frame (dragging the accent picker) only repaint once
+local refreshQueued = false
+local function queueThemeRefresh()
+	if refreshQueued then return end
+	refreshQueued = true
+	task.defer(function()
+		refreshQueued = false
+		refreshThemeUpdaters()
+	end)
+end
+
 local function setTheme(themeName)
 	if not THEMES[themeName] then return end
 	activeThemeName = themeName
@@ -407,7 +418,7 @@ local function setTheme(themeName)
 	for k, v in pairs(theme) do
 		K[k] = v
 	end
-	refreshThemeUpdaters()
+	queueThemeRefresh()
 end
 
 local function shade(color, factor)
@@ -419,11 +430,12 @@ end
 
 local function setAccentColor(color)
 	if typeof(color) ~= "Color3" then return end
+	if K.white == color and K.logoMid == color then return end
 	K.white   = color
 	K.logoTop = shade(color, 1.35)
 	K.logoMid = color
 	K.logoBot = shade(color, 0.55)
-	refreshThemeUpdaters()
+	queueThemeRefresh()
 end
 
 -- random letters for ScreenGui names, so there is no fixed name to look for
@@ -443,10 +455,42 @@ local function inst(cls, props, parent)
 	return o
 end
 
+local tweenInfos = {}
 local function tw(obj, goals, t, style, dir)
-	return TweenService:Create(obj,
-		TweenInfo.new(t, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out),
-		goals)
+	style = style or Enum.EasingStyle.Quint
+	dir = dir or Enum.EasingDirection.Out
+	local byStyle = tweenInfos[style]
+	if not byStyle then byStyle = {}; tweenInfos[style] = byStyle end
+	local byDir = byStyle[dir]
+	if not byDir then byDir = {}; byStyle[dir] = byDir end
+	local info = byDir[t]
+	if not info then info = TweenInfo.new(t, style, dir); byDir[t] = info end
+	return TweenService:Create(obj, info, goals)
+end
+
+local MOUSE1 = Enum.UserInputType.MouseButton1
+local MOUSE_MOVE = Enum.UserInputType.MouseMovement
+local TOUCH = Enum.UserInputType.Touch
+
+-- global move/end listeners only exist while something is being dragged
+local function trackDrag(onMove, onEnd)
+	local moveConn, endConn
+	local function stop()
+		if not moveConn then return end
+		moveConn:Disconnect()
+		endConn:Disconnect()
+		moveConn, endConn = nil, nil
+		if onEnd then onEnd() end
+	end
+	moveConn = UIS.InputChanged:Connect(function(inp)
+		local t = inp.UserInputType
+		if t == MOUSE_MOVE or t == TOUCH then onMove(inp) end
+	end)
+	endConn = UIS.InputEnded:Connect(function(inp)
+		local t = inp.UserInputType
+		if t == MOUSE1 or t == TOUCH then stop() end
+	end)
+	return stop
 end
 
 local function rnd(p, r)
@@ -474,7 +518,7 @@ local function brd(p, col, thick)
 	if not color then
 		registerThemeUpdater(function()
 			stroke.Color = K[colorKey]
-		end, stroke)
+		end, stroke, true)
 	end
 	return stroke
 end
@@ -503,7 +547,7 @@ local function frame(parent, p)
 	if colorKey then
 		registerThemeUpdater(function()
 			f.BackgroundColor3 = K[colorKey]
-		end, f)
+		end, f, true)
 	end
 	return f
 end
@@ -538,7 +582,7 @@ local function lbl(parent, p)
 	if colorKey then
 		registerThemeUpdater(function()
 			l.TextColor3 = K[colorKey]
-		end, l)
+		end, l, true)
 	end
 	return l
 end
@@ -586,7 +630,7 @@ local function btn(parent, p)
 			b.BackgroundColor3 = K[activeColorKey]
 			b.TextColor3 = K[activeTcKey]
 		end
-	end, b)
+	end, b, true)
 	return b
 end
 
@@ -614,7 +658,7 @@ local function img(parent, p)
 	if colorKey then
 		registerThemeUpdater(function()
 			i.ImageColor3 = K[colorKey]
-		end, i)
+		end, i, true)
 	end
 	return i
 end
@@ -775,12 +819,21 @@ local function makeSlider(parent, minV, maxV, defaultV)
 	end)
 	wrap.Destroying:Connect(stopDrag)
 
-	task.defer(function() setValue(defaultV or minV, true) end)
+	setValue(defaultV or minV, true)
 
 	return { frame=wrap, setValue=setValue, getValue=function() return val end, changed=changedEvent.Event }
 end
 
+local function sameList(a, b)
+	if #a ~= #b then return false end
+	for i = 1, #a do
+		if a[i] ~= b[i] then return false end
+	end
+	return true
+end
+
 local function makeDropdown(parent, options, defaultIdx, onOpenStart)
+	local lastOpts = table.clone(options)
 	local selected = ""
 	if type(defaultIdx) == "string" then
 		for _, opt in ipairs(options) do
@@ -978,6 +1031,9 @@ local function makeDropdown(parent, options, defaultIdx, onOpenStart)
 			changedEvent:Fire(selected)
 		end,
 		setOptions = function(newOpts)
+			-- scripts refresh player lists on a timer, most of the time nothing changed
+			if sameList(lastOpts, newOpts) then options = newOpts return end
+			lastOpts = table.clone(newOpts)
 			options = newOpts
 			local found = false
 			for _, opt in ipairs(options) do
@@ -1006,6 +1062,7 @@ end
 
 
 local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
+	local lastOpts = table.clone(options)
 	local selected = {}
 	if type(defaultSelected) == "table" then
 		for k, v in pairs(defaultSelected) do
@@ -1223,6 +1280,8 @@ local function makeMultiDropdown(parent, options, defaultSelected, onOpenStart)
 			changedEvent:Fire(selected)
 		end,
 		setOptions = function(newOpts)
+			if sameList(lastOpts, newOpts) then options = newOpts return end
+			lastOpts = table.clone(newOpts)
 			options = newOpts
 			local newSelected = {}
 			local validOpts = {}
@@ -1411,14 +1470,18 @@ local function makeColorPicker(parent, defaultColor, onOpenStart)
 	local function updateSV(inp)
 		local posX = math.clamp(inp.Position.X - svMap.AbsolutePosition.X, 0, svMap.AbsoluteSize.X)
 		local posY = math.clamp(inp.Position.Y - svMap.AbsolutePosition.Y, 0, svMap.AbsoluteSize.Y)
-		s = posX / svMap.AbsoluteSize.X
-		v = 1 - (posY / svMap.AbsoluteSize.Y)
+		local ns = posX / svMap.AbsoluteSize.X
+		local nv = 1 - (posY / svMap.AbsoluteSize.Y)
+		if ns == s and nv == v then return end
+		s, v = ns, nv
 		updateColor()
 	end
-	
+
 	local function updateH(inp)
 		local posX = math.clamp(inp.Position.X - hueTrack.AbsolutePosition.X, 0, hueTrack.AbsoluteSize.X)
-		h = posX / hueTrack.AbsoluteSize.X
+		local nh = posX / hueTrack.AbsoluteSize.X
+		if nh == h then return end
+		h = nh
 		updateColor()
 	end
 	
@@ -1604,6 +1667,16 @@ function VantixUI:CreateWindow(config)
 		return c
 	end
 
+	local activeDrags = {}
+	local function windowDrag(onMove, onEnd)
+		local stop
+		stop = trackDrag(onMove, function()
+			activeDrags[stop] = nil
+			if onEnd then onEnd() end
+		end)
+		activeDrags[stop] = true
+	end
+
 	-- X button, Destroy, re-exec: turn everything off
 	local tornDown = false
 	local function teardown()
@@ -1613,6 +1686,7 @@ function VantixUI:CreateWindow(config)
 		closeVantixPanels()
 		for _, c in ipairs(liveConns) do pcall(function() c:Disconnect() end) end
 		table.clear(liveConns)
+		for stop in pairs(activeDrags) do pcall(stop) end
 	end
 	sg.Destroying:Connect(teardown)
 
@@ -1625,18 +1699,28 @@ function VantixUI:CreateWindow(config)
 
 	
 	pcall(function() RunService:UnbindFromRenderStep("VantixUICursorFree") end)
-	RunService:BindToRenderStep("VantixUICursorFree", Enum.RenderPriority.Camera.Value + 1, function()
-		if cursorSink.Visible then
-			local isFirstPerson = (camera.CFrame.Position - camera.Focus.Position).Magnitude < 1
-			if isFirstPerson then
-				UIS.MouseBehavior = Enum.MouseBehavior.Default
-				UIS.MouseIconEnabled = true
-			end
+	-- only bound while the window is open, first person locks the mouse every frame
+	local cursorBound = false
+	local cursorStepName = "VantixUICursorFree" .. sg.Name
+	local function setCursorStep(on)
+		if on == cursorBound then return end
+		cursorBound = on
+		if on then
+			RunService:BindToRenderStep(cursorStepName, Enum.RenderPriority.Camera.Value + 1, function()
+				local cam = workspace.CurrentCamera
+				if cam and (cam.CFrame.Position - cam.Focus.Position).Magnitude < 1 then
+					UIS.MouseBehavior = Enum.MouseBehavior.Default
+					UIS.MouseIconEnabled = true
+				end
+			end)
+		else
+			pcall(function() RunService:UnbindFromRenderStep(cursorStepName) end)
 		end
+	end
+	cursorSink:GetPropertyChangedSignal("Visible"):Connect(function()
+		setCursorStep(cursorSink.Visible)
 	end)
-	sg.Destroying:Connect(function()
-		pcall(function() RunService:UnbindFromRenderStep("VantixUICursorFree") end)
-	end)
+	sg.Destroying:Connect(function() setCursorStep(false) end)
 
 	local win = frame(sg,{
 		name="Win", colorKey="bg",
@@ -1692,19 +1776,14 @@ function VantixUI:CreateWindow(config)
 		grabHandle.MouseEnter:Connect(function() tw(grabLine,{BackgroundTransparency=0.25},0.12):Play() end)
 		grabHandle.MouseLeave:Connect(function() if not gDrag then tw(grabLine,{BackgroundTransparency=0.62},0.12):Play() end end)
 		grabHandle.InputBegan:Connect(function(inp)
-			if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+			if (inp.UserInputType==MOUSE1 or inp.UserInputType==TOUCH) and not gDrag then
 				gDrag=true; gds=inp.Position; gws=win.Position
-			end
-		end)
-		bind(UIS.InputChanged, function(inp)
-			if gDrag and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
-				local d=inp.Position-gds
-				win.Position=UDim2.new(gws.X.Scale,gws.X.Offset+d.X,gws.Y.Scale,gws.Y.Offset+d.Y)
-			end
-		end)
-		bind(UIS.InputEnded, function(inp)
-			if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
-				gDrag=false; tw(grabLine,{BackgroundTransparency=0.62},0.12):Play()
+				windowDrag(function(m)
+					local d=m.Position-gds
+					win.Position=UDim2.new(gws.X.Scale,gws.X.Offset+d.X,gws.Y.Scale,gws.Y.Offset+d.Y)
+				end, function()
+					gDrag=false; tw(grabLine,{BackgroundTransparency=0.62},0.12):Play()
+				end)
 			end
 		end)
 	end
@@ -1721,33 +1800,22 @@ function VantixUI:CreateWindow(config)
 		local rStartInput = Vector2.zero
 		local rStartSize  = Vector2.zero
 
+		local function onResize(inp)
+			local dx = inp.Position.X - rStartInput.X
+			local dy = inp.Position.Y - rStartInput.Y
+			local nw = math.clamp(rStartSize.X + dx, minWinW, maxWinW)
+			local nh = math.clamp(rStartSize.Y + dy, minWinH, maxWinH)
+			userResized = true
+			if introTween then pcall(function() introTween:Cancel() end); introTween = nil end
+			win.Size = UDim2.new(0, nw, 0, nh)
+		end
+
 		resizeBtn.InputBegan:Connect(function(inp)
-			if inp.UserInputType == Enum.UserInputType.MouseButton1
-			or inp.UserInputType == Enum.UserInputType.Touch then
+			if (inp.UserInputType == MOUSE1 or inp.UserInputType == TOUCH) and not rDragging then
 				rDragging   = true
 				rStartInput = Vector2.new(inp.Position.X, inp.Position.Y)
 				rStartSize  = Vector2.new(win.AbsoluteSize.X, win.AbsoluteSize.Y)
-			end
-		end)
-
-		bind(UIS.InputChanged, function(inp)
-			if not rDragging then return end
-			if inp.UserInputType == Enum.UserInputType.MouseMovement
-			or inp.UserInputType == Enum.UserInputType.Touch then
-				local dx = inp.Position.X - rStartInput.X
-				local dy = inp.Position.Y - rStartInput.Y
-				local nw = math.clamp(rStartSize.X + dx, minWinW, maxWinW)
-				local nh = math.clamp(rStartSize.Y + dy, minWinH, maxWinH)
-				userResized = true
-				if introTween then pcall(function() introTween:Cancel() end); introTween = nil end
-				win.Size = UDim2.new(0, nw, 0, nh)
-			end
-		end)
-
-		bind(UIS.InputEnded, function(inp)
-			if inp.UserInputType == Enum.UserInputType.MouseButton1
-			or inp.UserInputType == Enum.UserInputType.Touch then
-				rDragging = false
+				windowDrag(onResize, function() rDragging = false end)
 			end
 		end)
 
@@ -1977,20 +2045,13 @@ function VantixUI:CreateWindow(config)
 		local d_dragging = false
 		local ds, ws
 		dragArea.InputBegan:Connect(function(inp)
-			if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+			if (inp.UserInputType==MOUSE1 or inp.UserInputType==TOUCH) and not d_dragging then
 				d_dragging=true; ds=inp.Position; ws=minOverlay.Position
-			end
-		end)
-		bind(UIS.InputChanged, function(inp)
-			if d_dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
-				local d = inp.Position - ds
-				minOverlay.Position = UDim2.new(ws.X.Scale, ws.X.Offset + d.X, ws.Y.Scale, ws.Y.Offset + d.Y)
-				savedMinPos = minOverlay.Position
-			end
-		end)
-		bind(UIS.InputEnded, function(inp)
-			if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then 
-				d_dragging=false 
+				windowDrag(function(m)
+					local d = m.Position - ds
+					minOverlay.Position = UDim2.new(ws.X.Scale, ws.X.Offset + d.X, ws.Y.Scale, ws.Y.Offset + d.Y)
+					savedMinPos = minOverlay.Position
+				end, function() d_dragging=false end)
 			end
 		end)
 	end
@@ -2093,21 +2154,13 @@ function VantixUI:CreateWindow(config)
 	-- Drag
 	local dragging,ds,ws
 	titlebar.InputBegan:Connect(function(inp)
-		if inp.UserInputType==Enum.UserInputType.MouseButton1
-		or inp.UserInputType==Enum.UserInputType.Touch then
+		if (inp.UserInputType==MOUSE1 or inp.UserInputType==TOUCH) and not dragging then
 			dragging=true; ds=inp.Position; ws=win.Position
+			windowDrag(function(m)
+				local d=m.Position-ds
+				win.Position=UDim2.new(ws.X.Scale,ws.X.Offset+d.X,ws.Y.Scale,ws.Y.Offset+d.Y)
+			end, function() dragging=false end)
 		end
-	end)
-	bind(UIS.InputChanged, function(inp)
-		if dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement
-			or inp.UserInputType==Enum.UserInputType.Touch) then
-			local d=inp.Position-ds
-			win.Position=UDim2.new(ws.X.Scale,ws.X.Offset+d.X,ws.Y.Scale,ws.Y.Offset+d.Y)
-		end
-	end)
-	bind(UIS.InputEnded, function(inp)
-		if inp.UserInputType==Enum.UserInputType.MouseButton1
-		or inp.UserInputType==Enum.UserInputType.Touch then dragging=false end
 	end)
 
 	local followBar = frame(win,{
@@ -3029,7 +3082,7 @@ function VantixUI:CreateWindow(config)
 				Set = function(_, state)
 					-- a locked toggle never turns on, not even from a loaded config
 					if state and lockReason then return end
-					tog.set(state, true)
+					if tog.getState() ~= state then tog.set(state, true) end
 					if opts.Callback then
 						pcall(opts.Callback, state)
 					end
@@ -3075,8 +3128,10 @@ function VantixUI:CreateWindow(config)
 				pos=UDim2.new(1,-ROW_PAD,0,8), anchor=Vector2.new(1,0),
 				xa=Enum.TextXAlignment.Right, z=9,
 			})
+			local shown = valLbl.Text
 			sl.changed:Connect(function(v)
-				valLbl.Text = tostring(math.round(v))
+				local s = tostring(math.round(v))
+				if s ~= shown then shown = s; valLbl.Text = s end
 			end)
 
 			if opts.Callback then
@@ -3173,8 +3228,11 @@ function VantixUI:CreateWindow(config)
 				pos=UDim2.new(0,0,1,-1), z=8,
 			})
 
+			local shown = l.Text
 			return {
-				Set = function(_, newText) l.Text = newText end,
+				Set = function(_, newText)
+					if newText ~= shown then shown = newText; l.Text = newText end
+				end,
 				Get = function() return l.Text end,
 			}
 		end
@@ -3230,10 +3288,17 @@ function VantixUI:CreateWindow(config)
 			local maxLines = opts.MaxLines or 300
 			local lines = opts.Text and opts.Text ~= "" and string.split(opts.Text, "\n") or {}
 
+			-- many writes in one frame only rebuild the text once
+			local redrawQueued = false
 			local function redraw()
-				textLbl.Text = table.concat(lines, "\n")
+				if redrawQueued then return end
+				redrawQueued = true
 				task.defer(function()
-					out.CanvasPosition = Vector2.new(0, math.max(0, textLbl.AbsoluteSize.Y - out.AbsoluteSize.Y))
+					redrawQueued = false
+					textLbl.Text = table.concat(lines, "\n")
+					task.defer(function()
+						out.CanvasPosition = Vector2.new(0, math.max(0, textLbl.AbsoluteSize.Y - out.AbsoluteSize.Y))
+					end)
 				end)
 			end
 
@@ -3901,6 +3966,18 @@ function VantixUI:CreateWindow(config)
 	return Window
 end
 
+-- panel rows get set on a timer, mostly with the same value
+local function textSetter(label)
+	local shown = label.Text
+	return function(_, v)
+		v = tostring(v)
+		if v ~= shown then
+			shown = v
+			label.Text = v
+		end
+	end
+end
+
 function VantixUI:CreateNewWindow(config)
 	config = config or {}
 	local width = (config.Size and config.Size[1]) or 300
@@ -4026,33 +4103,28 @@ function VantixUI:CreateNewWindow(config)
 		-- copy the body width onto the card (AutomaticSize + Scale looped)
 		local function syncWidth()
 			if not body.Visible then return end
-			card.Size = UDim2.new(0, body.AbsoluteSize.X, 0, 0)
+			local w = body.AbsoluteSize.X
+			if card.Size.X.Offset ~= w then card.Size = UDim2.new(0, w, 0, 0) end
 		end
 		body:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncWidth)
 		task.defer(syncWidth)
 	end
 
-	local dragging, startPos, startInput
+	local dragging, startPos, startInput, stopDrag
 	header.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if (input.UserInputType == MOUSE1 or input.UserInputType == TOUCH) and not dragging then
 			dragging, startInput, startPos = true, input.Position, card.Position
-		end
-	end)
-	local dragChangedConn = UIS.InputChanged:Connect(function(input)
-		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-			local d = input.Position - startInput
-			card.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-		end
-	end)
-	local dragEndedConn = UIS.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = false
+			stopDrag = trackDrag(function(m)
+				local d = m.Position - startInput
+				card.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+			end, function()
+				dragging, stopDrag = false, nil
+			end)
 		end
 	end)
 	-- UIS connections dont die with the gui
 	sg.Destroying:Connect(function()
-		dragChangedConn:Disconnect()
-		dragEndedConn:Disconnect()
+		if stopDrag then stopDrag() end
 	end)
 
 	local Panel = { Gui = sg, Card = card }
@@ -4169,8 +4241,8 @@ function VantixUI:CreateNewWindow(config)
 
 			return {
 				Instance = row,
-				Set      = function(_, v) bottom.Text = tostring(v) end,
-				SetLabel = function(_, t) top.Text = tostring(t) end,
+				Set      = textSetter(bottom),
+				SetLabel = textSetter(top),
 				Destroy  = function() row:Destroy() end,
 			}
 		end
@@ -4201,8 +4273,8 @@ function VantixUI:CreateNewWindow(config)
 			bottom.TextTruncate = Enum.TextTruncate.AtEnd
 			return {
 				Instance = row,
-				Set      = function(_, v) bottom.Text = tostring(v) end,
-				SetLabel = function(_, t) top.Text = tostring(t) end,
+				Set      = textSetter(bottom),
+				SetLabel = textSetter(top),
 				Destroy  = function() row:Destroy() end,
 			}
 		end
@@ -4224,8 +4296,8 @@ function VantixUI:CreateNewWindow(config)
 		right.TextTruncate = Enum.TextTruncate.AtEnd
 		return {
 			Instance = row,
-			Set      = function(_, v) right.Text = tostring(v) end,
-			SetLabel = function(_, t) left.Text = tostring(t) end,
+			Set      = textSetter(right),
+			SetLabel = textSetter(left),
 			Destroy  = function() row:Destroy() end,
 		}
 	end
@@ -4244,7 +4316,7 @@ function VantixUI:CreateNewWindow(config)
 			l.AutomaticSize = Enum.AutomaticSize.X
 			return {
 				Instance = row,
-				Set     = function(_, t) l.Text = tostring(t) end,
+				Set     = textSetter(l),
 				Destroy = function() row:Destroy() end,
 			}
 		end
@@ -4257,7 +4329,7 @@ function VantixUI:CreateNewWindow(config)
 		})
 		return {
 			Instance = row,
-			Set     = function(_, t) l.Text = tostring(t) end,
+			Set     = textSetter(l),
 			Destroy = function() row:Destroy() end,
 		}
 	end
@@ -4307,7 +4379,7 @@ function VantixUI:CreateNewWindow(config)
 
 		return {
 			Instance = b,
-			SetText  = function(_, t) b.Text = tostring(t) end,
+			SetText  = textSetter(b),
 			Destroy  = function() b:Destroy() end,
 		}
 	end
