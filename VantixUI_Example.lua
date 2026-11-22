@@ -45,6 +45,7 @@ local godmode = MainTab:AddToggle({
 	Subtitle = "Become invincible",
 	Icon     = "shield",
 	Default  = false,
+	Keybind  = Enum.KeyCode.G,
 	Risky    = "Changing MaxHealth gets picked up by a lot of anti-cheats. Use it on servers you trust.",
 	Tooltip  = "Some anti-cheats flag this",
 	Callback = function(state)
@@ -67,9 +68,11 @@ local godmode = MainTab:AddToggle({
 
 local autoFarm = MainTab:AddToggle({
 	Title    = "Auto Farm",
-	Subtitle = "Collects nearby items",
+	Subtitle = "Runs while you hold H",
 	Icon     = "flask-conical",
 	Default  = false,
+	Keybind  = Enum.KeyCode.H,
+	KeyMode  = "Hold",
 	Beta     = "Can miss items on some maps, still working on it.",
 	Tooltip  = "Still in testing",
 	Callback = function(state)
@@ -336,18 +339,6 @@ SettingsTab:AddToggle({
 
 SettingsTab:AddSeparator()
 
-local configName = SettingsTab:AddTextBox({
-	Title       = "Configuration Name",
-	Icon        = "file-text",
-	Placeholder = "Enter config name...",
-	Default     = "ShowcaseConfig",
-	Callback    = function(text, enterPressed)
-		if enterPressed then
-			Flags.ConfigName = text
-		end
-	end,
-})
-
 local uiKeybind = SettingsTab:AddKeybind({
 	Title    = "Hide UI Keybind",
 	Subtitle = "Insert hides the window (separate from the toggle key)",
@@ -361,67 +352,29 @@ local uiKeybind = SettingsTab:AddKeybind({
 })
 
 SettingsTab:AddSeparator()
-SettingsTab:AddLabel("Config System", "save")
+SettingsTab:AddLabel("Config", "save")
 
 Window.ConfigManager:SetFolder("VantixUI_Examples")
-
-local function buildConfig(name)
-	local cfg = Window.ConfigManager:CreateConfig(name)
-	cfg:RegisterElement("GodMode",       godmode)
-	cfg:RegisterElement("WalkSpeed",     walkspeed)
-	cfg:RegisterElement("ESPColor",      espColor)
-	cfg:RegisterElement("ChamsMaterial", materialDropdown)
-	cfg:RegisterElement("ESPElements",   espElements)
-	cfg:RegisterElement("ConfigName",    configName)
-	cfg:RegisterElement("UIKeybind",     uiKeybind)
-	cfg:RegisterElement("ZoomKey",       zoomKey)
-	return cfg
-end
-
-local savedConfigs = SettingsTab:AddDropdown({
-	Title    = "Saved Configs",
-	Icon     = "folder",
-	Options  = Window.ConfigManager:GetConfigs(),
-})
+local cfg = Window.ConfigManager:CreateConfig("Default")
+Window.ConfigManager:UseLast(cfg)
+cfg:RegisterElement("GodMode",       godmode)
+cfg:RegisterElement("AutoFarm",      autoFarm)
+cfg:RegisterElement("WalkSpeed",     walkspeed)
+cfg:RegisterElement("ESPColor",      espColor)
+cfg:RegisterElement("ChamsMaterial", materialDropdown)
+cfg:RegisterElement("ESPElements",   espElements)
+cfg:RegisterElement("UIKeybind",     uiKeybind)
+cfg:RegisterElement("ZoomKey",       zoomKey)
+Window.ConfigManager:AddConfigSection(SettingsTab, cfg)
 
 SettingsTab:AddButton({
 	Title    = "Save Config",
+	Subtitle = "Saves into the config selected above",
 	Icon     = "save",
 	Text     = "Save",
 	Callback = function()
-		buildConfig(configName:Get()):Save()
-		savedConfigs:SetOptions(Window.ConfigManager:GetConfigs())
-		Window:Notify({Title="Config", Text="Saved as " .. configName:Get(), Duration=2})
-	end,
-})
-
-SettingsTab:AddButton({
-	Title    = "Load Selected",
-	Icon     = "download",
-	Text     = "Load",
-	Callback = function()
-		local name = savedConfigs:Get()
-		if name and name ~= "" then
-			configName:Set(name)
-			buildConfig(name):Load()
-			Window:Notify({Title="Config", Text="Loaded " .. name, Duration=2})
-		end
-	end,
-})
-
-SettingsTab:AddButton({
-	Title    = "Delete Selected",
-	Icon     = "trash-2",
-	Text     = "Delete",
-	Risky    = true,
-	Tooltip  = "Deletes the config file",
-	Callback = function()
-		local name = savedConfigs:Get()
-		if name and name ~= "" then
-			Window.ConfigManager:DeleteConfig(name)
-			savedConfigs:SetOptions(Window.ConfigManager:GetConfigs())
-			Window:Notify({Title="Config", Text="Deleted " .. name, Duration=2})
-		end
+		cfg:Save()
+		Window:Notify({Title="Config", Text="Saved " .. cfg.Name, Duration=2})
 	end,
 })
 
@@ -548,3 +501,5 @@ task.spawn(function()
 		RunService.Heartbeat:Wait()
 	end
 end)
+
+cfg:Load()
