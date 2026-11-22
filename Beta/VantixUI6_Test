@@ -4355,6 +4355,103 @@ function VantixUI:CreateWindow(config)
 		return config
 	end
 
+	function ConfigManager:GetLast()
+		if not files then return nil end
+		local path = self.Folder .. "/_last.txt"
+		if not isfile(path) then return nil end
+		local ok, name = pcall(readfile, path)
+		if ok and type(name) == "string" and name ~= "" then return name end
+		return nil
+	end
+
+	function ConfigManager:SetLast(name)
+		if not files then return end
+		ensureFolder(self.Folder)
+		pcall(writefile, self.Folder .. "/_last.txt", tostring(name))
+	end
+
+	function ConfigManager:UseLast(cfg)
+		local last = self:GetLast()
+		if last and files and isfile(self.Folder .. "/" .. last .. ".json") then cfg.Name = last end
+		return cfg.Name
+	end
+
+	function ConfigManager:AddConfigSection(tab, cfg, opts)
+		opts = opts or {}
+		local manager = self
+		local function note(text)
+			if opts.Notify then safeCall(opts.Notify, text) return end
+			Window:Notify({Title = "Config", Text = text, Icon = "save", Duration = 2})
+		end
+		local function load()
+			if opts.Load then
+				local ok, res = pcall(opts.Load)
+				return ok and res
+			end
+			return cfg:Load()
+		end
+		local function list()
+			local names = manager:GetConfigs()
+			local found = false
+			for _, n in ipairs(names) do if n == cfg.Name then found = true break end end
+			if not found then table.insert(names, 1, cfg.Name) end
+			return names
+		end
+
+		local dd = tab:AddDropdown({
+			Title = opts.Title or "Config",
+			Subtitle = "The last loaded one loads on start",
+			Icon = "folder",
+			Options = list(),
+			Default = cfg.Name,
+			Callback = function(name)
+				if name == "" or name == cfg.Name then return end
+				cfg.Name = name
+				manager:SetLast(name)
+				note(load() and ("Loaded " .. name) or (name .. " has no saved settings yet"))
+			end,
+		})
+		local nameBox = tab:AddTextBox({Title = "New Config", Icon = "file-plus", Placeholder = "Name..."})
+		tab:AddButton({
+			Title = "Create Config",
+			Subtitle = "Saves the current settings under the new name",
+			Icon = "plus",
+			Text = "Create",
+			Callback = function()
+				local n = (tostring(nameBox:Get() or ""):gsub("[^%w%-_ ]", ""))
+				n = n:match("^%s*(.-)%s*$")
+				if n == "" then note("Enter a name first") return end
+				cfg.Name = n
+				cfg:Save()
+				manager:SetLast(n)
+				nameBox:Set("")
+				dd:SetOptions(list())
+				dd:Set(n)
+				note("Created " .. n)
+			end,
+		})
+		tab:AddButton({
+			Title = "Delete Config",
+			Subtitle = "Deletes the selected config",
+			Icon = "trash-2",
+			Text = "Delete",
+			Callback = function()
+				local names = manager:GetConfigs()
+				if #names <= 1 then note("The last config can't be deleted") return end
+				local old = cfg.Name
+				manager:DeleteConfig(old)
+				local nxt = manager:GetConfigs()[1]
+				cfg.Name = nxt
+				manager:SetLast(nxt)
+				load()
+				dd:SetOptions(list())
+				dd:Set(nxt)
+				note("Deleted " .. old)
+			end,
+		})
+		return dd
+	end
+
 	function Window:SetTheme(name)
 		setTheme(name)
 	end
