@@ -788,8 +788,7 @@ local function makeToggle(parent, initialState, guard)
 		BackgroundTransparency=1, Text="",
 		Size=UDim2.fromScale(1,1), ZIndex=7, AutoButtonColor=false,
 	}, track)
-	tb.MouseButton1Click:Connect(function()
-		local newState = not state
+	local function request(newState)
 		if newState and guard then
 			guard(function()
 				update(true, true)
@@ -799,9 +798,10 @@ local function makeToggle(parent, initialState, guard)
 			update(newState, true)
 			changedEvent:Fire(newState)
 		end
-	end)
+	end
+	tb.MouseButton1Click:Connect(function() request(not state) end)
 
-	return { frame=track, set=update, changed=changedEvent.Event, getState=function() return state end }
+	return { frame=track, set=update, changed=changedEvent.Event, getState=function() return state end, request=request }
 end
 
 
@@ -2229,12 +2229,13 @@ function VantixUI:CreateWindow(config)
 	local function setToggleKey(key)
 		toggleKey = key
 	end
+	local capturing = false
 
 	if getgenv().VantixUIToggleConn then
 		pcall(function() getgenv().VantixUIToggleConn:Disconnect() end)
 	end
 	getgenv().VantixUIToggleConn = bind(UIS.InputBegan, function(inp)
-		if toggleKey and inp.KeyCode == toggleKey and not UIS:GetFocusedTextBox() then
+		if toggleKey and inp.KeyCode == toggleKey and not capturing and not UIS:GetFocusedTextBox() then
 			if minimized then doRestore() else doMinimize() end
 		end
 	end)
@@ -2296,6 +2297,260 @@ function VantixUI:CreateWindow(config)
 			tab.content.Visible = (name == page)
 		end
 	end
+
+	local searchQuery = ""
+	local function applySearch()
+		local q = string.lower(searchQuery)
+		local searching = q ~= ""
+		for name, tab in pairs(tabs) do
+			local hits = 0
+			for _, c in ipairs(tab.scroll:GetChildren()) do
+				if c:IsA("GuiObject") then c.Visible = not searching end
+			end
+			for _, it in ipairs(tab.items) do
+				local hit = not searching or string.find(it.text, q, 1, true) ~= nil
+				it.inst.Visible = hit
+				if hit and searching then
+					hits += 1
+					if it.group then it.group.Visible = true end
+				end
+			end
+			local nb = navBtns[name]
+			if nb then
+				local fade = (searching and hits == 0) and 0.6 or 0
+				nb.lbl.TextTransparency = fade
+				if nb.icon then nb.icon.ImageTransparency = fade end
+			end
+		end
+	end
+
+	local searchBtn = makeCtrlBtn("search", "Search", false)
+	searchBtn.LayoutOrder = 0
+	ctrlFrame.Size = UDim2.new(0, 116, 0, 32)
+	local searchIc = searchBtn:FindFirstChild("Icon")
+	if searchIc then searchIc.Size = UDim2.new(0,16,0,16) end
+
+	local searchBox = inst("TextBox",{
+		Name="SearchBox", AutoLocalize=false,
+		BackgroundColor3=K.bg, BorderSizePixel=0,
+		Font=Enum.Font.BuilderSansMedium, Text="", PlaceholderText="Search",
+		PlaceholderColor3=K.muted, TextColor3=K.text, TextSize=13,
+		TextXAlignment=Enum.TextXAlignment.Left, ClearTextOnFocus=false,
+		TextTruncate=Enum.TextTruncate.AtEnd, ClipsDescendants=true,
+		Size=UDim2.new(0,0,0,28), Position=UDim2.new(1,-132,0.5,0), AnchorPoint=Vector2.new(1,0.5),
+		ZIndex=7, Visible=false, TextEditable=false,
+	}, titlebar)
+	rnd(searchBox, 6)
+	local searchStroke = brd(searchBox, "border", 1)
+	pad(searchBox, 10, 10, 0, 0)
+	registerThemeUpdater(function()
+		searchBox.BackgroundColor3 = K.bg
+		searchBox.PlaceholderColor3 = K.muted
+		searchBox.TextColor3 = K.text
+	end, searchBox)
+
+	local searchOpen = false
+	local function paintSearchBtn()
+		if searchOpen then
+			tw(searchBtn,{BackgroundTransparency=0, BackgroundColor3=K.border},0.1):Play()
+			if searchIc then tw(searchIc,{ImageColor3=K.white},0.1):Play() end
+		else
+			tw(searchBtn,{BackgroundTransparency=1},0.1):Play()
+			if searchIc then tw(searchIc,{ImageColor3=K.sub},0.1):Play() end
+		end
+	end
+	searchBtn.MouseLeave:Connect(function() task.defer(paintSearchBtn) end)
+
+	local tagLayout = tagContainer:FindFirstChildOfClass("UIListLayout")
+	local function searchFit()
+		local right = titlebar.AbsoluteSize.X - 132
+		local tagsRight = tagContainer.AbsolutePosition.X - titlebar.AbsolutePosition.X + (tagLayout and tagLayout.AbsoluteContentSize.X or 0)
+		local w = right - tagsRight - 10
+		if w >= 100 then return math.min(190, w), true end
+		return 190, false
+	end
+	titlebar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if not searchOpen then return end
+		local w, fits = searchFit()
+		searchBox.Size = UDim2.new(0, w, 0, 28)
+		tagContainer.Visible = fits
+	end)
+
+	local function setSearchOpen(on)
+		if on == searchOpen then return end
+		searchOpen = on
+		paintSearchBtn()
+		if on then
+			local w, fits = searchFit()
+			searchBox.TextEditable = true
+			searchBox.Visible = true
+			tagContainer.Visible = fits
+			tw(searchBox,{Size=UDim2.new(0,w,0,28)},0.2):Play()
+			searchBox:CaptureFocus()
+		else
+			searchBox:ReleaseFocus()
+			searchBox.TextEditable = false
+			searchBox.Text = ""
+			local t = tw(searchBox,{Size=UDim2.new(0,0,0,28)},0.15)
+			t.Completed:Connect(function()
+				if not searchOpen then searchBox.Visible = false; tagContainer.Visible = true end
+			end)
+			t:Play()
+		end
+	end
+	searchBtn.MouseButton1Click:Connect(function() setSearchOpen(not searchOpen) end)
+	searchBox.Focused:Connect(function()
+		if not searchOpen then searchBox:ReleaseFocus() return end
+		searchStroke.Color = K.borderHi
+	end)
+	searchBox.FocusLost:Connect(function()
+		searchStroke.Color = K.border
+		task.delay(0.15, function()
+			if searchOpen and searchBox.Text == "" and not searchBox:IsFocused() then setSearchOpen(false) end
+		end)
+	end)
+	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+		searchQuery = searchBox.Text
+		applySearch()
+	end)
+
+	local function keyName(k)
+		if not k or k == Enum.KeyCode.Unknown then return "None" end
+		if k == Enum.UserInputType.MouseButton3 then return "Mouse3" end
+		return k.Name
+	end
+
+	local popTarget
+	local boundToggles = {}
+
+	local popBackdrop = inst("TextButton",{
+		Name="KeyPopBackdrop", BackgroundTransparency=1, Text="", AutoButtonColor=false,
+		Size=UDim2.fromScale(1,1), ZIndex=400, Visible=false,
+	}, sg)
+
+	local pop = frame(sg,{name="KeyPop", colorKey="raised", size=UDim2.new(0,200,0,0), z=401})
+	pop.AutomaticSize = Enum.AutomaticSize.Y
+	pop.Visible = false
+	rnd(pop, 8)
+	brd(pop, "border", 1)
+	pad(pop, 10, 10, 8, 10)
+	inst("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder, Padding=UDim.new(0,6)}, pop)
+
+	local popTitle = lbl(pop,{text="Keybind", font=Enum.Font.BuilderSansBold, size=13, colorKey="white", sz=UDim2.new(1,0,0,18), z=402})
+	popTitle.TextTruncate = Enum.TextTruncate.AtEnd
+	popTitle.LayoutOrder = 1
+
+	local keyRow = frame(pop,{name="KeyRow", trans=1, size=UDim2.new(1,0,0,26), z=402})
+	keyRow.LayoutOrder = 2
+	lbl(keyRow,{text="Key", size=12, colorKey="sub", sz=UDim2.new(0,60,1,0), z=403})
+	local popKeyBtn = btn(keyRow,{
+		name="Key", text="None", size=12, colorKey="bg", tcKey="text",
+		sz=UDim2.new(0,110,0,26), pos=UDim2.new(1,0,0.5,0), anchor=Vector2.new(1,0.5), z=403,
+	})
+	rnd(popKeyBtn, 6)
+	brd(popKeyBtn, "border", 1)
+
+	local modeRow = frame(pop,{name="ModeRow", trans=1, size=UDim2.new(1,0,0,26), z=402})
+	modeRow.LayoutOrder = 3
+	lbl(modeRow,{text="Mode", size=12, colorKey="sub", sz=UDim2.new(0,60,1,0), z=403})
+	local seg = frame(modeRow,{name="Seg", colorKey="bg", size=UDim2.new(0,110,0,26), pos=UDim2.new(1,0,0.5,0), anchor=Vector2.new(1,0.5), z=403})
+	rnd(seg, 6)
+	brd(seg, "border", 1)
+	local modeBtns = {}
+	for i, m in ipairs({"Toggle", "Hold"}) do
+		local b = btn(seg,{
+			name=m, text=m, size=12, colorKey="bg", tcKey="sub",
+			sz=UDim2.new(0.5,-3,1,-6), pos=UDim2.new(i==1 and 0 or 0.5, i==1 and 3 or 0, 0, 3), z=404,
+		})
+		rnd(b, 4)
+		modeBtns[m] = b
+	end
+
+	local popHint = lbl(pop,{text="Esc removes the key", size=11, colorKey="muted", sz=UDim2.new(1,0,0,14), z=402})
+	popHint.LayoutOrder = 4
+
+	local function paintPop()
+		if not popTarget then return end
+		popKeyBtn.Text = capturing and "..." or keyName(popTarget.getKey())
+		for m, b in pairs(modeBtns) do
+			local on = popTarget.getMode() == m
+			b:SetAttribute("colorKey", on and "white" or "bg")
+			b:SetAttribute("tcKey", on and "black" or "sub")
+			b.BackgroundColor3 = on and K.white or K.bg
+			b.TextColor3 = on and K.black or K.sub
+		end
+	end
+
+	local function closeKeyPop()
+		capturing = false
+		popTarget = nil
+		pop.Visible = false
+		popBackdrop.Visible = false
+	end
+	table.insert(allDropdownClosers, closeKeyPop)
+
+	local function openKeyPop(target, anchor)
+		for _, closer in ipairs(allDropdownClosers) do pcall(closer) end
+		popTarget = target
+		popTitle.Text = target.title
+		paintPop()
+		local ap, as = anchor.AbsolutePosition, anchor.AbsoluteSize
+		local vp = camera.ViewportSize
+		local x = math.clamp(ap.X + as.X - 200, 4, vp.X - 204)
+		local y = ap.Y + as.Y + 4
+		if y + 124 > vp.Y then y = ap.Y - 128 end
+		pop.Position = UDim2.fromOffset(x, y)
+		pop.Visible = true
+		popBackdrop.Visible = true
+	end
+
+	popBackdrop.MouseButton1Click:Connect(closeKeyPop)
+	popKeyBtn.MouseButton1Click:Connect(function()
+		capturing = true
+		paintPop()
+	end)
+	for m, b in pairs(modeBtns) do
+		b.MouseButton1Click:Connect(function()
+			if popTarget then popTarget.setMode(m); paintPop() end
+		end)
+	end
+
+	local function keyMatches(key, inp)
+		if not key or key == Enum.KeyCode.Unknown then return false end
+		if key == Enum.UserInputType.MouseButton3 then return inp.UserInputType == key end
+		return inp.KeyCode == key
+	end
+
+	bind(UIS.InputBegan, function(inp)
+		if capturing then
+			if not popTarget then capturing = false return end
+			local middle = inp.UserInputType == Enum.UserInputType.MouseButton3
+			if inp.KeyCode == Enum.KeyCode.Unknown and not middle then return end
+			local k
+			if middle then
+				k = Enum.UserInputType.MouseButton3
+			elseif inp.KeyCode ~= Enum.KeyCode.Escape then
+				k = inp.KeyCode
+			end
+			popTarget.setKey(k)
+			task.defer(function()
+				capturing = false
+				paintPop()
+			end)
+			return
+		end
+		local focused = UIS:GetFocusedTextBox()
+		if focused and not (focused == searchBox and not searchOpen) then return end
+		for _, t in ipairs(boundToggles) do
+			if keyMatches(t.getKey(), inp) then t.press(true) end
+		end
+	end)
+	bind(UIS.InputEnded, function(inp)
+		for _, t in ipairs(boundToggles) do
+			if t.getMode() == "Hold" and keyMatches(t.getKey(), inp) then t.press(false) end
+		end
+	end)
+	local keyboardless = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 	if true then
 		sidebar = frame(body,{
@@ -2950,7 +3205,8 @@ function VantixUI:CreateWindow(config)
 			navBtns[tabKey]={bg=nb,accent=accent,lbl=nl,icon=iconImg}
 		end
 
-		tabs[tabKey] = { content=tabContent, scroll=scroll }
+		local items = {}
+		tabs[tabKey] = { content=tabContent, scroll=scroll, items=items }
 
 		if tabCount == 1 then
 			task.defer(function() setNav(tabKey) end)
@@ -2998,6 +3254,7 @@ function VantixUI:CreateWindow(config)
 				size=UDim2.new(1,0,0,rowH), z=7,
 			})
 			r.LayoutOrder = orderInGroup
+			table.insert(items, {inst=r, group=group, text=string.lower(title .. " " .. (subtitle or ""))})
 
 			if not isFirst then
 				frame(r,{
@@ -3055,7 +3312,8 @@ function VantixUI:CreateWindow(config)
 		end
 
 		-- greys out a row and puts a "Locked" pill left of its control; returns a function(on) to switch it
-		local function makeLockBadge(r, ctrl)
+		local function makeLockBadge(r, ctrl, fadeTarget)
+			fadeTarget = fadeTarget or ctrl
 			local pill = frame(r,{
 				name="Locked", colorKey="raised", trans=0,
 				size=UDim2.new(0,0,0,22), pos=UDim2.new(1,0,0.5,0), anchor=Vector2.new(1,0.5), z=9,
@@ -3091,7 +3349,7 @@ function VantixUI:CreateWindow(config)
 				end
 				local icon = r:FindFirstChild("Icon")
 				if icon then icon.ImageTransparency = fade end
-				if ctrl:IsA("GuiObject") then ctrl.BackgroundTransparency = on and 0.5 or 0 end
+				if fadeTarget:IsA("GuiObject") then fadeTarget.BackgroundTransparency = on and 0.5 or 0 end
 				-- keep the title clear of the pill
 				local textX = r:GetAttribute("TextX") or ROW_PAD
 				local extra = on and ((pill.AbsoluteSize.X > 0 and pill.AbsoluteSize.X or 64) + 8) or 0
@@ -3110,6 +3368,7 @@ function VantixUI:CreateWindow(config)
 				size=UDim2.new(1,0,0,60), z=7,
 			})
 			r.LayoutOrder = orderInGroup
+			table.insert(items, {inst=r, group=group, text=string.lower(title)})
 
 			if not isFirst then
 				frame(r,{
@@ -3155,18 +3414,120 @@ function VantixUI:CreateWindow(config)
 				if lockReason then showLockedNotice(lockReason) return end
 				if flagGuard then flagGuard(proceed) else proceed() end
 			end
-			local tog = makeToggle(r, (not lockReason) and opts.Default or false, guard)
-			tog.frame.Position   = UDim2.new(1,-ROW_PAD,0.5,0)
-			tog.frame.AnchorPoint = Vector2.new(1,0.5)
+			local ctl = frame(r,{
+				name="Ctl", trans=1,
+				size=UDim2.new(0,44,0,24), pos=UDim2.new(1,-ROW_PAD,0.5,0), anchor=Vector2.new(1,0.5), z=9,
+			})
+			inst("UIListLayout",{
+				FillDirection=Enum.FillDirection.Horizontal, SortOrder=Enum.SortOrder.LayoutOrder,
+				HorizontalAlignment=Enum.HorizontalAlignment.Right, VerticalAlignment=Enum.VerticalAlignment.Center,
+				Padding=UDim.new(0,6),
+			}, ctl)
+			local tog = makeToggle(ctl, (not lockReason) and opts.Default or false, guard)
+			tog.frame.LayoutOrder = 2
 			tog.frame.ZIndex = 9
-			fitRow(r, tog.frame)
-			local showLock = makeLockBadge(r, tog.frame)
+
+			local bindKey = typeof(opts.Keybind) == "EnumItem" and opts.Keybind ~= Enum.KeyCode.Unknown and opts.Keybind or nil
+			local bindMode = opts.KeyMode == "Hold" and "Hold" or "Toggle"
+			local keyChanged = Instance.new("BindableEvent")
+			local chip, chipLbl, dots, bindObj
+			local spacer = opts.Keybind == false and not keyboardless
+
+			local function refreshCtl()
+				local w = 44
+				if dots or spacer then w += 28 end
+				if chip then
+					if bindKey then
+						local txt = bindMode == "Hold" and ("Hold " .. keyName(bindKey)) or keyName(bindKey)
+						chipLbl.Text = txt
+						local tx = 30
+						pcall(function() tx = game:GetService("TextService"):GetTextSize(txt, 11, Enum.Font.BuilderSansMedium, Vector2.new(1000, 20)).X + 14 end)
+						chip.Size = UDim2.new(0, tx, 0, 20)
+						chip.Visible = true
+						w += tx + 6
+					else
+						chip.Visible = false
+					end
+				end
+				ctl.Size = UDim2.new(0, w, 0, 24)
+			end
+
+			if opts.Keybind ~= false and not keyboardless then
+				chip = frame(ctl,{name="KeyChip", colorKey="bg", size=UDim2.new(0,30,0,20), z=10})
+				chip.LayoutOrder = 1
+				rnd(chip, 5)
+				brd(chip, "border", 1)
+				chipLbl = lbl(chip,{text="", size=11, colorKey="sub", xa=Enum.TextXAlignment.Center, z=11})
+
+				dots = btn(ctl,{name="KeyMenu", text=lucide and "" or "...", size=13, colorKey="raised", tcKey="muted", trans=1, sz=UDim2.new(0,22,0,24), z=10})
+				dots.LayoutOrder = 3
+				rnd(dots, 6)
+				local dotsIc
+				if lucide then
+					dotsIc = img(dots,{img=getLucide("ellipsis-vertical", 16), colorKey="muted", sz=UDim2.new(0,16,0,16), pos=UDim2.new(0.5,0,0.5,0), anchor=Vector2.new(0.5,0.5), z=11})
+				end
+				dots.MouseEnter:Connect(function()
+					tw(dots,{BackgroundTransparency=0, BackgroundColor3=K.border},0.1):Play()
+					if dotsIc then tw(dotsIc,{ImageColor3=K.white},0.1):Play() end
+				end)
+				dots.MouseLeave:Connect(function()
+					tw(dots,{BackgroundTransparency=1},0.1):Play()
+					if dotsIc then tw(dotsIc,{ImageColor3=K.muted},0.1):Play() end
+				end)
+
+				bindObj = {
+					title = opts.Title or "Toggle",
+					getKey = function() return bindKey end,
+					getMode = function() return bindMode end,
+					setKey = function(k)
+						if k == Enum.KeyCode.Unknown then k = nil end
+						bindKey = k
+						refreshCtl()
+						keyChanged:Fire(k or Enum.KeyCode.Unknown)
+					end,
+					setMode = function(m)
+						bindMode = m == "Hold" and "Hold" or "Toggle"
+						refreshCtl()
+					end,
+					press = function(down)
+						if lockReason then return end
+						if bindMode == "Hold" then
+							if down ~= tog.getState() then tog.request(down) end
+						elseif down then
+							tog.request(not tog.getState())
+						end
+					end,
+				}
+				table.insert(boundToggles, bindObj)
+				dots.MouseButton1Click:Connect(function() openKeyPop(bindObj, dots) end)
+			end
+			if spacer then
+				frame(ctl,{name="KeySpace", trans=1, size=UDim2.new(0,22,0,24), z=9}).LayoutOrder = 3
+			end
+			refreshCtl()
+			fitRow(r, ctl)
+			local showLock = makeLockBadge(r, ctl, tog.frame)
 
 			if opts.Callback then
 				tog.changed:Connect(guarded(opts.Callback))
 			end
 
 			local toggleObj = {
+				SetKeybind = function(_, key, mode)
+					if not bindObj then return end
+					if mode then bindObj.setMode(mode) end
+					bindObj.setKey(key)
+				end,
+				GetKeybind = function() return bindKey, bindMode end,
+				Keybind = {
+					Get = function() return bindKey or Enum.KeyCode.Unknown end,
+					Set = function(_, key) if bindObj then bindObj.setKey(key) end end,
+					Changed = keyChanged.Event,
+				},
+				KeyMode = {
+					Get = function() return bindMode end,
+					Set = function(_, mode) if bindObj then bindObj.setMode(mode) end end,
+				},
 				Set = function(_, state)
 					-- a locked toggle never turns on, not even from a loaded config
 					if state and lockReason then return end
@@ -3295,6 +3656,7 @@ function VantixUI:CreateWindow(config)
 				size=UDim2.new(1,0,0,34), z=7,
 			})
 			r.LayoutOrder = rowCounter
+			table.insert(items, {inst=r, text=string.lower(text or "")})
 
 			local textOffset = (iconName and lucide) and 28 or 0
 
@@ -3656,8 +4018,14 @@ function VantixUI:CreateWindow(config)
 
 	local notifCount = 0
 
+	local muteUntil = 0
+	function Window:MuteNotifications(seconds)
+		muteUntil = math.max(muteUntil, os.clock() + (seconds or 1))
+	end
+
 	function Window:Notify(opts)
 		opts = opts or {}
+		if os.clock() < muteUntil and not opts.Force and opts.Title ~= "Config" then return end
 		local duration = opts.Duration or 3
 		local hasTitle = opts.Title and opts.Title ~= ""
 		local hasText  = opts.Text  and opts.Text  ~= ""
@@ -3988,6 +4356,10 @@ function VantixUI:CreateWindow(config)
 
 		function config:RegisterElement(id, element)
 			self.Elements[id] = element
+			if type(element) == "table" and type(element.Keybind) == "table" then
+				self.Elements[id .. "#key"] = element.Keybind
+				if type(element.KeyMode) == "table" then self.Elements[id .. "#mode"] = element.KeyMode end
+			end
 		end
 
 		function config:Save()
@@ -4005,13 +4377,15 @@ function VantixUI:CreateWindow(config)
 			if not (files and isfile(path)) then return false end
 			local ok, data = pcall(function() return HttpService:JSONDecode(readfile(path)) end)
 			if not ok or type(data) ~= "table" then return false end
+			Window:MuteNotifications(1)
 			for id, stored in pairs(data) do
 				local el = self.Elements[id]
 				if el and el.Set then
-					local value, valid = unpack(stored)
-					if valid then pcall(el.Set, el, value) end
+					local okv, value, valid = pcall(unpack, stored)
+					if okv and valid then pcall(el.Set, el, value) end
 				end
 			end
+			Window:MuteNotifications(0.6)
 			return true
 		end
 
@@ -4044,7 +4418,7 @@ function VantixUI:CreateWindow(config)
 		local manager = self
 		local function note(text)
 			if opts.Notify then safeCall(opts.Notify, text) return end
-			Window:Notify({Title = "Config", Text = text, Icon = "save", Duration = 2})
+			Window:Notify({Title = "Config", Text = text, Icon = "save", Duration = 2, Force = true})
 		end
 		local function load()
 			if opts.Load then

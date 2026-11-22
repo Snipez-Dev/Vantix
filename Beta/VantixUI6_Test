@@ -3524,6 +3524,10 @@ function VantixUI:CreateWindow(config)
 					Set = function(_, key) if bindObj then bindObj.setKey(key) end end,
 					Changed = keyChanged.Event,
 				},
+				KeyMode = {
+					Get = function() return bindMode end,
+					Set = function(_, mode) if bindObj then bindObj.setMode(mode) end end,
+				},
 				Set = function(_, state)
 					-- a locked toggle never turns on, not even from a loaded config
 					if state and lockReason then return end
@@ -4014,8 +4018,14 @@ function VantixUI:CreateWindow(config)
 
 	local notifCount = 0
 
+	local muteUntil = 0
+	function Window:MuteNotifications(seconds)
+		muteUntil = math.max(muteUntil, os.clock() + (seconds or 1))
+	end
+
 	function Window:Notify(opts)
 		opts = opts or {}
+		if os.clock() < muteUntil and not opts.Force and opts.Title ~= "Config" then return end
 		local duration = opts.Duration or 3
 		local hasTitle = opts.Title and opts.Title ~= ""
 		local hasText  = opts.Text  and opts.Text  ~= ""
@@ -4346,6 +4356,10 @@ function VantixUI:CreateWindow(config)
 
 		function config:RegisterElement(id, element)
 			self.Elements[id] = element
+			if type(element) == "table" and type(element.Keybind) == "table" then
+				self.Elements[id .. "#key"] = element.Keybind
+				if type(element.KeyMode) == "table" then self.Elements[id .. "#mode"] = element.KeyMode end
+			end
 		end
 
 		function config:Save()
@@ -4363,13 +4377,15 @@ function VantixUI:CreateWindow(config)
 			if not (files and isfile(path)) then return false end
 			local ok, data = pcall(function() return HttpService:JSONDecode(readfile(path)) end)
 			if not ok or type(data) ~= "table" then return false end
+			Window:MuteNotifications(1)
 			for id, stored in pairs(data) do
 				local el = self.Elements[id]
 				if el and el.Set then
-					local value, valid = unpack(stored)
-					if valid then pcall(el.Set, el, value) end
+					local okv, value, valid = pcall(unpack, stored)
+					if okv and valid then pcall(el.Set, el, value) end
 				end
 			end
+			Window:MuteNotifications(0.6)
 			return true
 		end
 
@@ -4402,7 +4418,7 @@ function VantixUI:CreateWindow(config)
 		local manager = self
 		local function note(text)
 			if opts.Notify then safeCall(opts.Notify, text) return end
-			Window:Notify({Title = "Config", Text = text, Icon = "save", Duration = 2})
+			Window:Notify({Title = "Config", Text = text, Icon = "save", Duration = 2, Force = true})
 		end
 		local function load()
 			if opts.Load then
