@@ -2338,7 +2338,7 @@ function VantixUI:CreateWindow(config)
 		TextXAlignment=Enum.TextXAlignment.Left, ClearTextOnFocus=false,
 		TextTruncate=Enum.TextTruncate.AtEnd, ClipsDescendants=true,
 		Size=UDim2.new(0,0,0,28), Position=UDim2.new(1,-132,0.5,0), AnchorPoint=Vector2.new(1,0.5),
-		ZIndex=7, Visible=false,
+		ZIndex=7, Visible=false, TextEditable=false,
 	}, titlebar)
 	rnd(searchBox, 6)
 	local searchStroke = brd(searchBox, "border", 1)
@@ -2361,16 +2361,35 @@ function VantixUI:CreateWindow(config)
 	end
 	searchBtn.MouseLeave:Connect(function() task.defer(paintSearchBtn) end)
 
+	local tagLayout = tagContainer:FindFirstChildOfClass("UIListLayout")
+	local function searchFit()
+		local right = titlebar.AbsoluteSize.X - 132
+		local tagsRight = tagContainer.AbsolutePosition.X - titlebar.AbsolutePosition.X + (tagLayout and tagLayout.AbsoluteContentSize.X or 0)
+		local w = right - tagsRight - 10
+		if w >= 100 then return math.min(190, w), true end
+		return 190, false
+	end
+	titlebar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if not searchOpen then return end
+		local w, fits = searchFit()
+		searchBox.Size = UDim2.new(0, w, 0, 28)
+		tagContainer.Visible = fits
+	end)
+
 	local function setSearchOpen(on)
 		if on == searchOpen then return end
 		searchOpen = on
 		paintSearchBtn()
 		if on then
+			local w, fits = searchFit()
+			searchBox.TextEditable = true
 			searchBox.Visible = true
-			tagContainer.Visible = false
-			tw(searchBox,{Size=UDim2.new(0,190,0,28)},0.2):Play()
+			tagContainer.Visible = fits
+			tw(searchBox,{Size=UDim2.new(0,w,0,28)},0.2):Play()
 			searchBox:CaptureFocus()
 		else
+			searchBox:ReleaseFocus()
+			searchBox.TextEditable = false
 			searchBox.Text = ""
 			local t = tw(searchBox,{Size=UDim2.new(0,0,0,28)},0.15)
 			t.Completed:Connect(function()
@@ -2380,7 +2399,10 @@ function VantixUI:CreateWindow(config)
 		end
 	end
 	searchBtn.MouseButton1Click:Connect(function() setSearchOpen(not searchOpen) end)
-	searchBox.Focused:Connect(function() searchStroke.Color = K.borderHi end)
+	searchBox.Focused:Connect(function()
+		if not searchOpen then searchBox:ReleaseFocus() return end
+		searchStroke.Color = K.borderHi
+	end)
 	searchBox.FocusLost:Connect(function()
 		searchStroke.Color = K.border
 		task.delay(0.15, function()
@@ -2517,7 +2539,8 @@ function VantixUI:CreateWindow(config)
 			end)
 			return
 		end
-		if UIS:GetFocusedTextBox() then return end
+		local focused = UIS:GetFocusedTextBox()
+		if focused and not (focused == searchBox and not searchOpen) then return end
 		for _, t in ipairs(boundToggles) do
 			if keyMatches(t.getKey(), inp) then t.press(true) end
 		end
