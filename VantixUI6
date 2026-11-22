@@ -4053,8 +4053,15 @@ function VantixUI:CreateWindow(config)
 			end
 			return cfg:Load()
 		end
+		local function configs()
+			local names = {}
+			for _, n in ipairs(manager:GetConfigs()) do
+				if not (opts.Exclude and n:match(opts.Exclude)) then names[#names + 1] = n end
+			end
+			return names
+		end
 		local function list()
-			local names = manager:GetConfigs()
+			local names = configs()
 			local found = false
 			for _, n in ipairs(names) do if n == cfg.Name then found = true break end end
 			if not found then table.insert(names, 1, cfg.Name) end
@@ -4099,11 +4106,11 @@ function VantixUI:CreateWindow(config)
 			Icon = "trash-2",
 			Text = "Delete",
 			Callback = function()
-				local names = manager:GetConfigs()
+				local names = configs()
 				if #names <= 1 then note("The last config can't be deleted") return end
 				local old = cfg.Name
 				manager:DeleteConfig(old)
-				local nxt = manager:GetConfigs()[1]
+				local nxt = configs()[1]
 				cfg.Name = nxt
 				manager:SetLast(nxt)
 				load()
