@@ -17,18 +17,96 @@ while not camera do
 	camera = workspace.CurrentCamera
 end
 
-local lucide
-pcall(function()
-	lucide = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))()
-	lucide.SetIconsType("lucide")
-end)
+local HttpService = game:GetService("HttpService")
+
+local PACK_URL = "https://raw.githubusercontent.com/Snipez-Dev/Vantix/refs/heads/main/ui-assets/pack.json"
+local CACHE = "VantixUI/assets1"
+local canCustom = typeof(getcustomasset) == "function" and typeof(writefile) == "function"
+	and typeof(readfile) == "function" and typeof(isfile) == "function"
+	and typeof(isfolder) == "function" and typeof(makefolder) == "function"
+
+local b64decode = (crypt and (crypt.base64decode or crypt.base64_decode)) or base64_decode
+if typeof(b64decode) ~= "function" then
+	local map = {}
+	local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	for i = 1, 64 do map[chars:byte(i)] = i - 1 end
+	b64decode = function(s)
+		local out, n, bits, count = {}, 0, 0, 0
+		for i = 1, #s do
+			local v = map[s:byte(i)]
+			if v then
+				bits = bits * 64 + v
+				count += 6
+				if count >= 8 then
+					count -= 8
+					n += 1
+					out[n] = string.char(math.floor(bits / 2 ^ count) % 256)
+					bits = bits % 2 ^ count
+				end
+			end
+		end
+		return table.concat(out)
+	end
+end
+
+local packData
+local function packEntry(key)
+	if packData == nil then
+		packData = false
+		local ok, raw = pcall(readfile, CACHE .. "/pack.json")
+		if ok and type(raw) == "string" then
+			local ok2, t = pcall(HttpService.JSONDecode, HttpService, raw)
+			if ok2 and type(t) == "table" then packData = t end
+		end
+	end
+	return packData and packData[key]
+end
+
+local imgCache = {}
+local function customImage(key)
+	local hit = imgCache[key]
+	if hit ~= nil then return hit or nil end
+	imgCache[key] = false
+	if not key:match("^[%w_%-]+$") then return nil end
+	local path = CACHE .. "/" .. key .. ".png"
+	if not isfile(path) then
+		local b64 = packEntry(key)
+		if type(b64) ~= "string" then return nil end
+		if not pcall(writefile, path, b64decode(b64)) then return nil end
+	end
+	local ok, asset = pcall(getcustomasset, path)
+	if ok and type(asset) == "string" and asset ~= "" then
+		imgCache[key] = asset
+		return asset
+	end
+	return nil
+end
+
+local lucide, iconIndex = false, nil
+if canCustom then
+	pcall(function()
+		if not isfolder("VantixUI") then makefolder("VantixUI") end
+		if not isfolder(CACHE) then makefolder(CACHE) end
+		local f = CACHE .. "/pack.json"
+		if not isfile(f) then
+			local body = game:HttpGet(PACK_URL)
+			if type(body) == "string" and body:sub(1, 1) == "{" and #body > 10000 then writefile(f, body) end
+		end
+		lucide = isfile(f) and customImage("search") ~= nil
+	end)
+end
+if not lucide then
+	pcall(function()
+		iconIndex = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/refs/heads/main/lucide/dist/Icons.lua"))()
+	end)
+	if type(iconIndex) ~= "table" then iconIndex = nil end
+	lucide = iconIndex ~= nil
+end
 
 local function getLucide(iconName, size)
-	if not lucide then return "" end
-	local s, res = pcall(function()
-		return lucide.GetIcon(iconName)
-	end)
-	return s and res or ""
+	if not lucide or type(iconName) ~= "string" then return "" end
+	if iconIndex then return iconIndex[iconName] or "" end
+	return customImage(iconName) or ""
 end
 
 local function isMobile()
@@ -39,9 +117,9 @@ end
 local LOGO_ASSET = "110034487018208"
 local function assetImage(id)
 	id = tostring(id)
-	if getcustomasset then
-		local ok, res = pcall(getcustomasset, id)
-		if ok and res then return res end
+	if id == LOGO_ASSET and canCustom then
+		local a = customImage("_logo")
+		if a then return a end
 	end
 	return "rbxassetid://"..id
 end
@@ -1577,6 +1655,16 @@ end
 
 
 local VantixUI = {}
+VantixUI.Debug = false
+
+local function safeCall(fn, ...)
+	local ok, err = pcall(fn, ...)
+	if not ok and VantixUI.Debug then warn("[VantixUI] callback error: " .. tostring(err)) end
+end
+
+local function guarded(fn)
+	return function(...) safeCall(fn, ...) end
+end
 VantixUI.Themes = THEMES
 
 -- panels close together with the main window
@@ -3075,7 +3163,7 @@ function VantixUI:CreateWindow(config)
 			local showLock = makeLockBadge(r, tog.frame)
 
 			if opts.Callback then
-				tog.changed:Connect(opts.Callback)
+				tog.changed:Connect(guarded(opts.Callback))
 			end
 
 			local toggleObj = {
@@ -3084,7 +3172,7 @@ function VantixUI:CreateWindow(config)
 					if state and lockReason then return end
 					if tog.getState() ~= state then tog.set(state, true) end
 					if opts.Callback then
-						pcall(opts.Callback, state)
+						safeCall(opts.Callback, state)
 					end
 				end,
 				Get = function()
@@ -3095,7 +3183,7 @@ function VantixUI:CreateWindow(config)
 					lockReason = typeof(reason)=="string" and reason or DEFAULT_LOCK_REASON
 					if tog.getState() then
 						tog.set(false, true)
-						if opts.Callback then pcall(opts.Callback, false) end
+						if opts.Callback then safeCall(opts.Callback, false) end
 					end
 					showLock(true)
 				end,
@@ -3135,7 +3223,7 @@ function VantixUI:CreateWindow(config)
 			end)
 
 			if opts.Callback then
-				sl.changed:Connect(opts.Callback)
+				sl.changed:Connect(guarded(opts.Callback))
 			end
 
 			return {
@@ -3175,7 +3263,7 @@ function VantixUI:CreateWindow(config)
 				tw(ab,{BackgroundColor3=K.bg},0.1):Play()
 			end)
 			local function fireButton()
-				if opts.Callback then pcall(opts.Callback) end
+				if opts.Callback then safeCall(opts.Callback) end
 				tw(ab,{BackgroundColor3=K.white,TextColor3=K.black},0.08):Play()
 				task.delay(0.16,function()
 					tw(ab,{BackgroundColor3=K.bg,TextColor3=K.white},0.12):Play()
@@ -3335,7 +3423,7 @@ function VantixUI:CreateWindow(config)
 			table.insert(allDropdownClosers, dd.close)
 
 			if opts.Callback then
-				dd.changed:Connect(opts.Callback)
+				dd.changed:Connect(guarded(opts.Callback))
 			end
 
 			return {
@@ -3365,7 +3453,7 @@ function VantixUI:CreateWindow(config)
 			table.insert(allDropdownClosers, dd.close)
 
 			if opts.Callback then
-				dd.changed:Connect(opts.Callback)
+				dd.changed:Connect(guarded(opts.Callback))
 			end
 
 			return {
@@ -3388,7 +3476,7 @@ function VantixUI:CreateWindow(config)
 			fitRow(r, tb.frame)
 
 			if opts.Callback then
-				tb.changed:Connect(opts.Callback)
+				tb.changed:Connect(guarded(opts.Callback))
 			end
 
 			return {
@@ -3420,7 +3508,7 @@ function VantixUI:CreateWindow(config)
 			table.insert(allDropdownClosers, cp.close)
 
 			if opts.Callback then
-				cp.changed:Connect(opts.Callback)
+				cp.changed:Connect(guarded(opts.Callback))
 			end
 
 			return {
@@ -3473,11 +3561,11 @@ function VantixUI:CreateWindow(config)
 				if not listening then
 					if matches(inp) and not UIS:GetFocusedTextBox() and opts.Callback then
 						if opts.Risky then
-							showRiskyConfirm(function() pcall(opts.Callback) end, nil, typeof(opts.Risky)=="string" and opts.Risky or nil)
+							showRiskyConfirm(function() safeCall(opts.Callback) end, nil, typeof(opts.Risky)=="string" and opts.Risky or nil)
 						elseif opts.Beta then
-							showBetaConfirm(function() pcall(opts.Callback) end, nil, typeof(opts.Beta)=="string" and opts.Beta or nil)
+							showBetaConfirm(function() safeCall(opts.Callback) end, nil, typeof(opts.Beta)=="string" and opts.Beta or nil)
 						else
-							pcall(opts.Callback)
+							safeCall(opts.Callback)
 						end
 					end
 					return
@@ -3542,7 +3630,7 @@ function VantixUI:CreateWindow(config)
 					local ok, key = pcall(function() return Enum.KeyCode[sel] end)
 					if ok and key then
 						setToggleKey(key)
-						if opts.Callback then pcall(opts.Callback, key) end
+						if opts.Callback then safeCall(opts.Callback, key) end
 					end
 				end,
 			})
@@ -4181,7 +4269,7 @@ function VantixUI:CreateNewWindow(config)
 
 	closeBtn.MouseButton1Click:Connect(function()
 		sg.Enabled = false
-		if config.OnClose then pcall(config.OnClose) end
+		if config.OnClose then safeCall(config.OnClose) end
 	end)
 
 	function Panel:AddRow(label, accentKeyOrOpts)
@@ -4374,7 +4462,7 @@ function VantixUI:CreateNewWindow(config)
 			tw(b, { BackgroundColor3 = K.raised }, 0.12):Play()
 		end)
 		b.MouseButton1Click:Connect(function()
-			if opts.Callback then task.spawn(opts.Callback) end
+			if opts.Callback then task.spawn(safeCall, opts.Callback) end
 		end)
 
 		return {
@@ -4453,7 +4541,7 @@ function VantixUI:CreateNewWindow(config)
 		function handle:Set(value, silent)
 			state = value == true
 			render(true)
-			if not silent and opts.Callback then task.spawn(opts.Callback, state) end
+			if not silent and opts.Callback then task.spawn(safeCall, opts.Callback, state) end
 		end
 		function handle:Get() return state end
 		function handle:Destroy() row:Destroy() end
