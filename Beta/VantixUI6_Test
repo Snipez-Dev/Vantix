@@ -3424,17 +3424,18 @@ function VantixUI:CreateWindow(config)
 				Padding=UDim.new(0,6),
 			}, ctl)
 			local tog = makeToggle(ctl, (not lockReason) and opts.Default or false, guard)
-			tog.frame.LayoutOrder = 3
+			tog.frame.LayoutOrder = 2
 			tog.frame.ZIndex = 9
 
 			local bindKey = typeof(opts.Keybind) == "EnumItem" and opts.Keybind ~= Enum.KeyCode.Unknown and opts.Keybind or nil
 			local bindMode = opts.KeyMode == "Hold" and "Hold" or "Toggle"
 			local keyChanged = Instance.new("BindableEvent")
 			local chip, chipLbl, dots, bindObj
+			local spacer = opts.Keybind == false and not keyboardless
 
 			local function refreshCtl()
 				local w = 44
-				if dots then w += 28 end
+				if dots or spacer then w += 28 end
 				if chip then
 					if bindKey then
 						local txt = bindMode == "Hold" and ("Hold " .. keyName(bindKey)) or keyName(bindKey)
@@ -3459,7 +3460,7 @@ function VantixUI:CreateWindow(config)
 				chipLbl = lbl(chip,{text="", size=11, colorKey="sub", xa=Enum.TextXAlignment.Center, z=11})
 
 				dots = btn(ctl,{name="KeyMenu", text=lucide and "" or "...", size=13, colorKey="raised", tcKey="muted", trans=1, sz=UDim2.new(0,22,0,24), z=10})
-				dots.LayoutOrder = 2
+				dots.LayoutOrder = 3
 				rnd(dots, 6)
 				local dotsIc
 				if lucide then
@@ -3499,6 +3500,9 @@ function VantixUI:CreateWindow(config)
 				}
 				table.insert(boundToggles, bindObj)
 				dots.MouseButton1Click:Connect(function() openKeyPop(bindObj, dots) end)
+			end
+			if spacer then
+				frame(ctl,{name="KeySpace", trans=1, size=UDim2.new(0,22,0,24), z=9}).LayoutOrder = 3
 			end
 			refreshCtl()
 			fitRow(r, ctl)
