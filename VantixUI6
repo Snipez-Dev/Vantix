@@ -2481,27 +2481,45 @@ function VantixUI:CreateWindow(config)
 		end
 	end
 
+	local popFollow
 	local function closeKeyPop()
 		capturing = false
 		popTarget = nil
+		if popFollow then popFollow:Disconnect(); popFollow = nil end
 		pop.Visible = false
 		popBackdrop.Visible = false
 	end
 	table.insert(allDropdownClosers, closeKeyPop)
 
-	local function openKeyPop(target, anchor)
-		for _, closer in ipairs(allDropdownClosers) do pcall(closer) end
-		popTarget = target
-		popTitle.Text = target.title
-		paintPop()
+	local function placePop(anchor, scroller)
 		local ap, as = anchor.AbsolutePosition, anchor.AbsoluteSize
+		if scroller then
+			local sp, ss = scroller.AbsolutePosition, scroller.AbsoluteSize
+			local cy = ap.Y + as.Y/2
+			if cy < sp.Y or cy > sp.Y + ss.Y then
+				pop.Visible = false
+				return
+			end
+		end
 		local vp = camera.ViewportSize
 		local x = math.clamp(ap.X + as.X - 200, 4, vp.X - 204)
 		local y = ap.Y + as.Y + 4
 		if y + 124 > vp.Y then y = ap.Y - 128 end
 		pop.Position = UDim2.fromOffset(x, y)
 		pop.Visible = true
+	end
+
+	local function openKeyPop(target, anchor)
+		for _, closer in ipairs(allDropdownClosers) do pcall(closer) end
+		popTarget = target
+		popTitle.Text = target.title
+		paintPop()
+		local scroller = anchor:FindFirstAncestorWhichIsA("ScrollingFrame")
+		placePop(anchor, scroller)
 		popBackdrop.Visible = true
+		popFollow = anchor:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+			placePop(anchor, scroller)
+		end)
 	end
 
 	popBackdrop.MouseButton1Click:Connect(closeKeyPop)
